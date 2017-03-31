@@ -262,7 +262,7 @@ fn combined_paths(base: &Path, relativize: &Path) -> String {
     }
     out.push('}');
 
-    for comp in suffix {
+    for comp in suffix.into_iter().rev() {
         out.push('/');
         out += &comp;
     }
@@ -308,6 +308,7 @@ fn combined_test() {
     let e: PathBuf = "e.txt".into();
     let f: PathBuf = "/foo/bar/baz/a.txt".into();
     let g: PathBuf = "/foo/baz/quz/zzz/a.txt".into();
+    let h: PathBuf = "/foo/b/quz/zzz/a.txt".into();
 
     assert_eq!(&combined_paths(&a,&b), "foo/{bar/baz => baz/quz/zzz}/a.txt");
     assert_eq!(&combined_paths(&c,&b), "foo/baz/quz/zzz/{b.txt => a.txt}");
@@ -315,4 +316,5 @@ fn combined_test() {
     assert_eq!(&combined_paths(&d,&c), "{. => foo/baz/quz/zzz}/b.txt");
     assert_eq!(&combined_paths(&d,&e), "{b.txt => e.txt}");
     assert_eq!(&combined_paths(&f,&g), "/foo/{bar/baz => baz/quz/zzz}/a.txt");
+    assert_eq!(&combined_paths(&h,&g), "/foo/{b => baz}/quz/zzz/a.txt");
 }
