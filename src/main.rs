@@ -19,6 +19,7 @@ fn main() {
     let mut s = Scanner::new();
     for arg in env::args_os().skip(1) {
         let path: PathBuf = arg.into();
-        s.scan(path).unwrap();
+        s.enqueue(path).unwrap();
     }
+    s.flush().unwrap();
 }

@@ -71,15 +71,20 @@ impl Scanner {
     /// Scan any file or directory for dupes.
     /// Dedupe is done within the path as well as against all previously added paths.
     pub fn scan<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
-        let path = fs::canonicalize(path)?;
-        let metadata = fs::symlink_metadata(&path)?;
-        self.add(path, metadata)?;
+        self.enqueue(path)?;
         self.flush()?;
         Ok(())
     }
 
+    pub fn enqueue<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+        let path = fs::canonicalize(path)?;
+        let metadata = fs::symlink_metadata(&path)?;
+        self.add(path, metadata)?;
+        Ok(())
+    }
+
     /// Drains the queue of directories to scan
-    fn flush(&mut self) -> io::Result<()> {
+    pub fn flush(&mut self) -> io::Result<()> {
         while let Some((_, path)) = self.to_scan.pop() {
             self.scan_dir(path)?;
         }
