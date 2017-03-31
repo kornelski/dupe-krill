@@ -122,7 +122,7 @@ fn range_sha() {
     let hashed = HashedRange::from_file(&mut file, 0, 4).unwrap();
 
     assert_eq!(4, hashed.size);
-    assert_eq!([198,254,89,241,130,230,42,136,170,247,183,245,230,203,123,131,202,126,121,132], hashed.hash);
+    assert_eq!([199,31,32,178,46,189,89,221,26,72,162,140,182,69,43,154,40,195,32,163], hashed.hash);
 
     let hashed = HashedRange::from_file(&mut file, 1, 2).unwrap();
     assert_eq!(2, hashed.size);
