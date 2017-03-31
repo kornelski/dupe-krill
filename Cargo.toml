@@ -9,6 +9,11 @@ keywords = ["dupe", "duplicate", "deduplication"]
 categories = ["command-line-utilities", "filesystem"]
 license = "MIT"
 
+[profile.release]
+lto = true
+opt-level = 3
+panic = "abort"
+
 [dependencies]
 sha1 = "0.2.0"
 
