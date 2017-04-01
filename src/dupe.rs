@@ -114,7 +114,7 @@ impl Scanner {
             return Ok(());
         }
 
-        if self.settings.ignore_small && metadata.size() < metadata.blksize() {
+        if metadata.size() == 0 || (self.settings.ignore_small && metadata.size() < metadata.blksize()) {
             self.stats.skipped += 1;
             return Ok(());
         }
