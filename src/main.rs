@@ -10,6 +10,7 @@ mod file;
 mod hasher;
 mod lazyfile;
 mod metadata;
+mod ui;
 
 use dupe::Scanner;
 use std::env;
