@@ -42,8 +42,8 @@ impl FileContent {
     pub fn new<P: Into<PathBuf>>(path: P, metadata: Metadata) -> Self {
         let path = path.into();
         FileContent {
-            path,
-            metadata,
+            path: path,
+            metadata: metadata,
             hashes: Mutex::new(Hasher::new()),
         }
     }

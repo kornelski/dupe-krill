@@ -25,7 +25,7 @@ impl HashedRange {
 
         Ok(HashedRange {
             hash: sha1.digest().bytes(),
-            size,
+            size: size,
         })
     }
 }
