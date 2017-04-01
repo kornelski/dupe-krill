@@ -43,6 +43,10 @@ impl UI {
     pub fn hardlinked(&self, src: &Path, dst: &Path) {
         println!("Hardlinked {}", combined_paths(src, dst));
     }
+
+    pub fn found(&self, src: &Path, dst: &Path) {
+        println!("Found dupe {}", combined_paths(src, dst));
+    }
 }
 
 fn combined_paths(base: &Path, relativize: &Path) -> String {

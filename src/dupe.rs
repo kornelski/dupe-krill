@@ -17,7 +17,8 @@ use ui::UI;
 pub struct Settings {
     // Ignore files smaller than a filesystem block.
     // Deduping of such files is unlikely to save space.
-    pub ignore_small: bool
+    pub ignore_small: bool,
+    pub dry_run: bool,
 }
 
 #[derive(Debug,Default)]
@@ -49,6 +50,7 @@ impl Scanner {
         Scanner {
             settings: Settings {
                 ignore_small: true,
+                dry_run: false,
             },
             by_inode: HashMap::new(),
             by_content: BTreeMap::new(),
@@ -151,13 +153,13 @@ impl Scanner {
                 self.stats.dupes += 1;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
-                Self::dedupe(filesets, &self.ui)?;
+                Self::dedupe(filesets, self.settings.dry_run, &self.ui)?;
             },
         }
         Ok(())
     }
 
-    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, ui: &UI) -> io::Result<()> {
+    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, dry_run: bool, ui: &UI) -> io::Result<()> {
         // Find file with the largest number of hardlinks, since it's less work to merge a small group into a large group
         let (largest_idx, merged_fileset) = filesets.iter().enumerate().max_by_key(|&(i,f)| (f.lock().unwrap().links(),!i)).expect("fileset can't be empty");
 
@@ -173,6 +175,12 @@ impl Scanner {
             for dest_path in paths.drain(..) {
                 assert_ne!(&source_path, &dest_path);
                 debug_assert_ne!(fs::symlink_metadata(&source_path)?.ino(), fs::symlink_metadata(&dest_path)?.ino());
+
+                if dry_run {
+                    ui.found(&dest_path, &source_path);
+                    merged_paths.push(dest_path);
+                    continue;
+                }
 
                 let temp_path = dest_path.with_file_name(".tmp-dupe-e1iIQcBFn5pC4MUSm-xkcd-221");
                 debug_assert!(!temp_path.exists());
@@ -230,6 +238,14 @@ fn scan_hardlink() {
     drop(a_fd);
 
     fs::hard_link(&a_path, &b_path).unwrap();
+
+    let mut d = Scanner::new();
+    d.settings.ignore_small = false;
+    d.settings.dry_run = true;
+    d.scan(dir.path()).unwrap();
+    let dupes = d.dupes();
+    assert_eq!(dupes.len(), 1);
+    assert_eq!(dupes[0].paths.len(), 2);
 
     let mut d = Scanner::new();
     d.settings.ignore_small = false;
