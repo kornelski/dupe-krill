@@ -4,10 +4,11 @@ description = "A fast file deduplicator. Replaces duplicate files with identical
 repository = "https://github.com/pornel/duplicate-kriller"
 documentation = "https://github.com/pornel/duplicate-kriller#readme"
 name = "duplicate-kriller"
-version = "0.9.2"
+homepage = "https://github.com/pornel/duplicate-kriller"
 keywords = ["dupe", "duplicate", "deduplication"]
 categories = ["command-line-utilities", "filesystem"]
 license = "MIT"
+version = "1.0.0"
 
 [profile.release]
 lto = true
@@ -15,6 +16,7 @@ opt-level = 3
 panic = "abort"
 
 [dependencies]
+getopts = "0.2.14"
 sha1 = "0.2.0"
 
 [dev-dependencies]

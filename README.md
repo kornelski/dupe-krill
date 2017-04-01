@@ -17,10 +17,11 @@ It's the first version of this program, so it may eat your data. It's been teste
 If you have [Rust](https://www.rust-lang.org/), build the program with either `cargo install duplicate-kriller` or `cargo build --release`.
 
 ```sh
-duplicate-kriller <files or directories>
+duplicate-kriller -d <files or directories> # find dupes without doing anything
+duplicate-kriller <files or directories> # find and replace with hardlinks
 ```
 
-At this moment there are no options. All directories given to the command will be scanned recursively.
+See `duplicate-kriller -h` for details.
 
 ## The method
 
