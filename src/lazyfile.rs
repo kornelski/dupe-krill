@@ -12,7 +12,8 @@ pub struct LazyFile<'a> {
 impl<'a> LazyFile<'a> {
     pub fn new(path: &'a Path) -> Self {
         LazyFile {
-            path, file: None,
+            path: path,
+            file: None,
         }
     }
 
