@@ -78,6 +78,7 @@ impl Scanner {
         while let Some((_, path)) = self.to_scan.pop() {
             self.scan_dir(path)?;
         }
+        self.ui.summmary(&self.stats);
         Ok(())
     }
 
@@ -94,7 +95,7 @@ impl Scanner {
 
 
     fn add(&mut self, path: PathBuf, metadata: fs::Metadata) -> io::Result<()> {
-        self.ui.update(&path, &self.stats, self.to_scan.len());
+        self.ui.update(&path, &self.stats);
 
         let ty = metadata.file_type();
         if ty.is_dir() {

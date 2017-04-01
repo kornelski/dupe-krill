@@ -25,14 +25,19 @@ impl UI {
         }
     }
 
-    pub fn update(&mut self, path: &PathBuf, stats: &Stats, to_scan: usize) {
+    pub fn update(&mut self, path: &PathBuf, stats: &Stats) {
         let elapsed = self.timing.start_time.elapsed().as_secs();
         if elapsed > self.timing.next_update {
             self.timing.next_update = elapsed+1;
-            println!("{}+{} dupes. {}+{} files scanned. {} dirs left. {}/…",
-                stats.dupes, stats.hardlinks, stats.added, stats.skipped, to_scan,
+            println!("{}+{} dupes. {}+{} files scanned. {}/…",
+                stats.dupes, stats.hardlinks, stats.added, stats.skipped,
                 path.parent().unwrap_or(path).display());
         }
+    }
+
+    pub fn summmary(&self, stats: &Stats) {
+        println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}.",
+            stats.dupes, stats.hardlinks, stats.added, stats.skipped);
     }
 
     pub fn hardlinked(&self, src: &Path, dst: &Path) {
