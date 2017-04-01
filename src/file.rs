@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::cmp::Ordering;
+use std::cmp::max;
 use std::sync::Mutex;
 use std::io;
 use metadata::Metadata;
@@ -7,18 +8,27 @@ use hasher::Hasher;
 
 #[derive(Debug, Clone)]
 pub struct FileSet {
+    /// Tracks number of hardlinks from stat to also count unseen links outside scanned dirs
+    pub max_hardlinks: u64,
     pub paths: Vec<PathBuf>
 }
 
 impl FileSet {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, max_hardlinks: u64) -> Self {
         FileSet {
+            max_hardlinks: max_hardlinks,
             paths: vec![path],
         }
     }
 
-    pub fn push(&mut self, path: PathBuf) {
+    pub fn push(&mut self, path: PathBuf, max_hardlinks: u64) {
+        self.max_hardlinks = max(self.max_hardlinks, max_hardlinks);
         self.paths.push(path);
+    }
+
+    /// Number of known hardlinks to this file content
+    pub fn links(&self) -> u64 {
+        return max(self.max_hardlinks, self.paths.len() as u64)
     }
 }
 

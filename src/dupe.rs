@@ -140,19 +140,20 @@ impl Scanner {
 
         self.stats.added += 1;
 
+        let path_hardlinks = metadata.nlink();
         let m = (metadata.dev(), metadata.ino());
 
         // That's handling hardlinks
         let fileset = match self.by_inode.entry(m) {
             HashEntry::Vacant(e) => {
-                let fileset = Rc::new(Mutex::new(FileSet::new(path.clone())));
+                let fileset = Rc::new(Mutex::new(FileSet::new(path.clone(), path_hardlinks)));
                 e.insert(fileset.clone()); // clone just bumps a refcount here
                 fileset
             },
             HashEntry::Occupied(mut e) => {
                 self.stats.hardlinks += 1;
                 let mut t = e.get_mut().lock().unwrap();
-                t.push(path);
+                t.push(path, path_hardlinks);
                 return Ok(());
             }
         };
@@ -176,7 +177,7 @@ impl Scanner {
 
     fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>) -> io::Result<()> {
         // Find file with the largest number of hardlinks, since it's less work to merge a small group into a large group
-        let (largest_idx, merged_fileset) = filesets.iter().enumerate().max_by_key(|&(i,f)| (f.lock().unwrap().paths.len(),i)).expect("fileset can't be empty");
+        let (largest_idx, merged_fileset) = filesets.iter().enumerate().max_by_key(|&(i,f)| (f.lock().unwrap().links(),!i)).expect("fileset can't be empty");
 
         // The set is still going to be in use! So everything has to be updated to make sense for the next call
         let merged_paths = &mut merged_fileset.lock().unwrap().paths;
