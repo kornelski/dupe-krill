@@ -1,19 +1,7 @@
-#![allow(dead_code)]
-
-extern crate sha1;
 extern crate getopts;
+extern crate duplicate_kriller;
 
-#[cfg(test)]
-extern crate tempdir;
-
-mod dupe;
-mod file;
-mod hasher;
-mod lazyfile;
-mod metadata;
-mod ui;
-
-use dupe::Scanner;
+use duplicate_kriller::Scanner;
 use std::env;
 use std::path::PathBuf;
 use getopts::Options;
