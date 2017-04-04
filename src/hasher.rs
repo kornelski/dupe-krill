@@ -115,15 +115,24 @@ impl Hasher {
     }
 }
 
-#[test]
-fn range_sha() {
-    let path: ::std::path::PathBuf = "tests/a".into();
-    let mut file = LazyFile::new(&path);
-    let hashed = HashedRange::from_file(&mut file, 0, 4).unwrap();
+#[cfg(test)]
+mod test {
+    extern crate tempdir;
+    extern crate file;
+    use super::*;
 
-    assert_eq!(4, hashed.size);
-    assert_eq!([199,31,32,178,46,189,89,221,26,72,162,140,182,69,43,154,40,195,32,163], hashed.hash);
+    #[test]
+    fn range_sha() {
+        let tmp = tempdir::TempDir::new("hashtest").expect("tmp");
+        let path = &tmp.path().join("a");
+        file::put_text(&path, "aaa\n").expect("write");
+        let mut file = LazyFile::new(&path);
+        let hashed = HashedRange::from_file(&mut file, 0, 4).expect("hash");
 
-    let hashed = HashedRange::from_file(&mut file, 1, 2).unwrap();
-    assert_eq!(2, hashed.size);
+        assert_eq!(4, hashed.size);
+        assert_eq!([199,31,32,178,46,189,89,221,26,72,162,140,182,69,43,154,40,195,32,163], hashed.hash);
+
+        let hashed = HashedRange::from_file(&mut file, 1, 2).expect("hash2");
+        assert_eq!(2, hashed.size);
+    }
 }
