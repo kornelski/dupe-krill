@@ -5,6 +5,7 @@ use duplicate_kriller::Scanner;
 use std::env;
 use std::path::PathBuf;
 use getopts::Options;
+use duplicate_kriller::TextUserInterface;
 
 fn main() {
     let mut opts = Options::new();
@@ -25,6 +26,7 @@ fn main() {
     }
 
     let mut s = Scanner::new();
+    s.set_listener(Box::new(TextUserInterface::new()));
     s.settings.dry_run = matches.opt_present("dry-run");
     s.settings.ignore_small = !matches.opt_present("small");
 
