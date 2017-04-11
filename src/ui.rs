@@ -1,5 +1,6 @@
 use std::time::Instant;
 use dupe::Stats;
+use dupe::ScanListener;
 use std::path::PathBuf;
 use std::path::Path;
 
@@ -24,8 +25,10 @@ impl UI {
             },
         }
     }
+}
 
-    pub fn update(&mut self, path: &PathBuf, stats: &Stats) {
+impl ScanListener for UI {
+    fn file_scanned(&mut self, path: &PathBuf, stats: &Stats) {
         let elapsed = self.timing.start_time.elapsed().as_secs();
         if elapsed > self.timing.next_update {
             self.timing.next_update = elapsed+1;
@@ -35,16 +38,16 @@ impl UI {
         }
     }
 
-    pub fn summmary(&self, stats: &Stats) {
+    fn scan_over(&mut self, stats: &Stats) {
         println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}.",
             stats.dupes, stats.hardlinks, stats.added, stats.skipped);
     }
 
-    pub fn hardlinked(&self, src: &Path, dst: &Path) {
+    fn hardlinked(&mut self, src: &Path, dst: &Path) {
         println!("Hardlinked {}", combined_paths(src, dst));
     }
 
-    pub fn found(&self, src: &Path, dst: &Path) {
+    fn duplicate_found(&mut self, src: &Path, dst: &Path) {
         println!("Found dupe {}", combined_paths(src, dst));
     }
 }

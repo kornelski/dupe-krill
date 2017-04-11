@@ -9,3 +9,4 @@ mod ui;
 
 pub use dupe::Scanner;
 pub use file::FileContent;
+pub use ui::UI as TextUserInterface;

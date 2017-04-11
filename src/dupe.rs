@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use std::os::unix::fs::MetadataExt;
 use std::collections::hash_map::Entry as HashEntry;
 use std::collections::btree_map::Entry as BTreeEntry;
-use ui::UI;
+use std::fmt::Debug;
 
 #[derive(Debug)]
 pub struct Settings {
@@ -29,6 +29,22 @@ pub struct Stats {
     pub hardlinks: usize,
 }
 
+pub trait ScanListener : Debug {
+    fn file_scanned(&mut self, path: &PathBuf, stats: &Stats);
+    fn scan_over(&mut self, stats: &Stats);
+    fn hardlinked(&mut self, src: &Path, dst: &Path);
+    fn duplicate_found(&mut self, src: &Path, dst: &Path);
+}
+
+#[derive(Debug)]
+struct SilentListener;
+impl ScanListener for SilentListener {
+    fn file_scanned(&mut self, _: &PathBuf, _: &Stats) {}
+    fn scan_over(&mut self, _: &Stats) {}
+    fn hardlinked(&mut self, _: &Path, _: &Path) {}
+    fn duplicate_found(&mut self, _: &Path, _: &Path) {}
+}
+
 #[derive(Debug)]
 pub struct Scanner {
     /// All hardlinks of the same inode have to be treated as the same file
@@ -40,7 +56,7 @@ pub struct Scanner {
     /// which is related to its physical position on disk, which makes the scan more sequential.
     to_scan: BinaryHeap<(u64, PathBuf)>,
 
-    ui: UI,
+    scan_listener: Box<ScanListener>,
     stats: Stats,
     pub settings: Settings,
 }
@@ -55,9 +71,15 @@ impl Scanner {
             by_inode: HashMap::new(),
             by_content: BTreeMap::new(),
             to_scan: BinaryHeap::new(),
-            ui: UI::new(),
+            scan_listener: Box::new(SilentListener),
             stats: Stats::default(),
         }
+    }
+
+    /// Set the scan listener. Caution: This overrides previously set listeners!
+    /// Use a multiplexing listener if multiple listeners are required.
+    pub fn set_listener(&mut self, listener: Box<ScanListener>) {
+        self.scan_listener = listener;
     }
 
     /// Scan any file or directory for dupes.
@@ -80,7 +102,7 @@ impl Scanner {
         while let Some((_, path)) = self.to_scan.pop() {
             self.scan_dir(path)?;
         }
-        self.ui.summmary(&self.stats);
+        self.scan_listener.scan_over(&self.stats);
         Ok(())
     }
 
@@ -97,7 +119,7 @@ impl Scanner {
 
 
     fn add(&mut self, path: PathBuf, metadata: fs::Metadata) -> io::Result<()> {
-        self.ui.update(&path, &self.stats);
+        self.scan_listener.file_scanned(&path, &self.stats);
 
         let ty = metadata.file_type();
         if ty.is_dir() {
@@ -153,13 +175,13 @@ impl Scanner {
                 self.stats.dupes += 1;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
-                Self::dedupe(filesets, self.settings.dry_run, &self.ui)?;
+                Self::dedupe(filesets, self.settings.dry_run, &mut self.scan_listener)?;
             },
         }
         Ok(())
     }
 
-    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, dry_run: bool, ui: &UI) -> io::Result<()> {
+    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, dry_run: bool, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
         // Find file with the largest number of hardlinks, since it's less work to merge a small group into a large group
         let (largest_idx, merged_fileset) = filesets.iter().enumerate().max_by_key(|&(i,f)| (f.lock().unwrap().links(),!i)).expect("fileset can't be empty");
 
@@ -177,7 +199,7 @@ impl Scanner {
                 debug_assert_ne!(fs::symlink_metadata(&source_path)?.ino(), fs::symlink_metadata(&dest_path)?.ino());
 
                 if dry_run {
-                    ui.found(&dest_path, &source_path);
+                    scan_listener.duplicate_found(&dest_path, &source_path);
                     merged_paths.push(dest_path);
                     continue;
                 }
@@ -202,7 +224,7 @@ impl Scanner {
                 debug_assert!(!temp_path.exists());
                 debug_assert!(source_path.exists());
                 debug_assert!(dest_path.exists());
-                ui.hardlinked(&dest_path, &source_path);
+                scan_listener.hardlinked(&dest_path, &source_path);
                 merged_paths.push(dest_path);
             }
         }
