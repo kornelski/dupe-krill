@@ -22,7 +22,8 @@ pub struct Settings {
     pub dry_run: bool,
 }
 
-#[derive(Debug,Default,Copy,Clone,Serialize)]
+#[derive(Debug,Default,Copy,Clone)]
+#[cfg_attr(feature = "json",derive(Serialize))]
 pub struct Stats {
     pub added: usize,
     pub skipped: usize,

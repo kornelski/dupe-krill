@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use getopts::Options;
 use duplicate_kriller::TextUserInterface;
+#[cfg(feature = "json")]
 use duplicate_kriller::JsonOutput;
 use std::io::Write;
 
@@ -73,7 +74,13 @@ fn main() {
             s.set_listener(Box::new(TextUserInterface::new()));
         }
         OutputMode::Json => {
-            s.set_listener(Box::new(JsonOutput::new()))
+            if cfg!(feature = "json") {
+                #[cfg(feature = "json")]
+                s.set_listener(Box::new(JsonOutput::new()))
+            } else {
+                writeln!(&mut std::io::stderr(), "This binary was compiled without JSON support.").unwrap();
+                std::process::exit(2)
+            }
         }
     }
 
