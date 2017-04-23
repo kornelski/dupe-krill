@@ -18,6 +18,7 @@ mod ui;
 mod json;
 
 pub use dupe::Scanner;
+pub use dupe::RunMode;
 pub use file::FileContent;
 pub use ui::UI as TextUserInterface;
 #[cfg(feature = "json")]

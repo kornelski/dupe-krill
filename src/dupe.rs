@@ -14,12 +14,21 @@ use std::collections::btree_map::Entry as BTreeEntry;
 use std::fmt::Debug;
 use std::time::{Duration,Instant};
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum RunMode {
+    /// Merges paths in memory, but not on disk. Gives realistic UI output.
+    DryRun,
+    /// Like dry run, but completely skips deduping, with no UI for dupes.
+    DryRunNoUI,
+    Hardlink,
+}
+
 #[derive(Debug)]
 pub struct Settings {
-    // Ignore files smaller than a filesystem block.
-    // Deduping of such files is unlikely to save space.
+    /// Ignore files smaller than a filesystem block.
+    /// Deduping of such files is unlikely to save space.
     pub ignore_small: bool,
-    pub dry_run: bool,
+    pub run_mode: RunMode,
 }
 
 #[derive(Debug,Default,Copy,Clone)]
@@ -68,7 +77,7 @@ impl Scanner {
         Scanner {
             settings: Settings {
                 ignore_small: true,
-                dry_run: false,
+                run_mode: RunMode::Hardlink,
             },
             by_inode: HashMap::new(),
             by_content: BTreeMap::new(),
@@ -179,13 +188,17 @@ impl Scanner {
                 self.stats.dupes += 1;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
-                Self::dedupe(filesets, self.settings.dry_run, &mut self.scan_listener)?;
+                Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
             },
         }
         Ok(())
     }
 
-    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, dry_run: bool, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
+    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, run_mode: RunMode, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
+        if run_mode == RunMode::DryRunNoUI {
+            return Ok(());
+        }
+
         // Find file with the largest number of hardlinks, since it's less work to merge a small group into a large group
         let (largest_idx, merged_fileset) = filesets.iter().enumerate().max_by_key(|&(i,f)| (f.lock().unwrap().links(),!i)).expect("fileset can't be empty");
 
@@ -202,7 +215,7 @@ impl Scanner {
                 assert_ne!(&source_path, &dest_path);
                 debug_assert_ne!(fs::symlink_metadata(&source_path)?.ino(), fs::symlink_metadata(&dest_path)?.ino());
 
-                if dry_run {
+                if run_mode == RunMode::DryRun {
                     scan_listener.duplicate_found(&dest_path, &source_path);
                     merged_paths.push(dest_path);
                     continue;

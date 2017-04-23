@@ -6,9 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 use getopts::Options;
-use duplicate_kriller::TextUserInterface;
-#[cfg(feature = "json")]
-use duplicate_kriller::JsonOutput;
+use duplicate_kriller::*;
 use std::io::Write;
 
 enum OutputMode {
@@ -60,7 +58,7 @@ fn main() {
     }
 
     let mut s = Scanner::new();
-    s.settings.dry_run = matches.opt_present("dry-run");
+    s.settings.run_mode = if matches.opt_present("dry-run") {RunMode::DryRun} else {RunMode::Hardlink};
     s.settings.ignore_small = !matches.opt_present("small");
     match output_mode {
         OutputMode::Quiet => {
@@ -68,7 +66,7 @@ fn main() {
         },
         OutputMode::Text => {
             // TODO this print statement belongs into the TextUserInterface.
-            if s.settings.dry_run {
+            if s.settings.run_mode == RunMode::DryRun {
                 println!("Dry run. No files will be changed.");
             }
             s.set_listener(Box::new(TextUserInterface::new()));
