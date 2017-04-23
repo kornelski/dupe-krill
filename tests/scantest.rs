@@ -32,12 +32,12 @@ fn scan_hardlink() {
     d.scan(dir.path()).unwrap();
     let dupes = d.dupes();
     assert_eq!(dupes.len(), 1);
-    assert_eq!(dupes[0].paths.len(), 2);
+    assert_eq!(dupes[0][0].paths.len(), 2);
 
     let mut d = Scanner::new();
     d.settings.ignore_small = false;
     d.scan(dir.path()).unwrap();
     let dupes = d.dupes();
     assert_eq!(dupes.len(), 1);
-    assert_eq!(dupes[0].paths.len(), 2);
+    assert_eq!(dupes[0][0].paths.len(), 2);
 }

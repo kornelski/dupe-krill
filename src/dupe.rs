@@ -248,10 +248,12 @@ impl Scanner {
         Ok(())
     }
 
-    pub fn dupes(&self) -> Vec<FileSet> {
-        self.by_inode.iter().map(|(_,d)|{
-            let tmp = d.lock().unwrap();
-            (*tmp).clone()
+    pub fn dupes(&self) -> Vec<Vec<FileSet>> {
+        self.by_content.iter().map(|(_,filesets)|{
+            filesets.iter().map(|d|{
+                let tmp = d.lock().unwrap();
+                (*tmp).clone()
+            }).collect()
         }).collect()
     }
 }

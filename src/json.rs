@@ -1,7 +1,6 @@
 use dupe::Stats;
 use dupe::ScanListener;
 use dupe::Scanner;
-use file::FileSet;
 use std::path::PathBuf;
 use std::path::Path;
 use std::time::Duration;
@@ -37,7 +36,7 @@ impl ScanListener for JsonOutput {
 #[serde(rename_all = "camelCase")]
 struct JsonSerializable {
     creator: String,
-    dupes: Vec<FileSet>,
+    dupes: Vec<Vec<Vec<PathBuf>>>,
     stats: Stats,
     scan_duration: Duration,
 }
@@ -46,7 +45,13 @@ impl JsonSerializable {
     pub fn new(scanner: &Scanner, stats: &Stats, scan_duration: Duration) -> Self {
         JsonSerializable {
             creator: format!("duplicate-kriller {}", env!("CARGO_PKG_VERSION")),
-            dupes: scanner.dupes().into_iter().filter(|x| x.paths.len() > 1).collect(),
+            dupes: scanner.dupes().into_iter()
+                .map(|sets|{
+                    sets.into_iter().filter(|set|set.paths.len() > 0).map(|set|set.paths).collect::<Vec<_>>()
+                })
+                .filter(|sets| {
+                    sets.len() > 1 || sets.iter().any(|set| set.len() > 1)
+                }).collect(),
             stats: *stats,
             scan_duration: scan_duration,
         }

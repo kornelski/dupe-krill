@@ -72,6 +72,9 @@ fn main() {
             s.set_listener(Box::new(TextUserInterface::new()));
         }
         OutputMode::Json => {
+            if s.settings.run_mode == RunMode::DryRun {
+                s.settings.run_mode = RunMode::DryRunNoUI;
+            }
             if cfg!(feature = "json") {
                 #[cfg(feature = "json")]
                 s.set_listener(Box::new(JsonOutput::new()))
