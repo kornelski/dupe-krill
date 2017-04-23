@@ -12,6 +12,7 @@ use std::os::unix::fs::MetadataExt;
 use std::collections::hash_map::Entry as HashEntry;
 use std::collections::btree_map::Entry as BTreeEntry;
 use std::fmt::Debug;
+use std::time::{Duration,Instant};
 
 #[derive(Debug)]
 pub struct Settings {
@@ -21,7 +22,7 @@ pub struct Settings {
     pub dry_run: bool,
 }
 
-#[derive(Debug,Default)]
+#[derive(Debug,Default,Copy,Clone,Serialize)]
 pub struct Stats {
     pub added: usize,
     pub skipped: usize,
@@ -31,7 +32,7 @@ pub struct Stats {
 
 pub trait ScanListener : Debug {
     fn file_scanned(&mut self, path: &PathBuf, stats: &Stats);
-    fn scan_over(&self, scanner: &Scanner, stats: &Stats);
+    fn scan_over(&self, scanner: &Scanner, stats: &Stats, scan_duration: Duration);
     fn hardlinked(&mut self, src: &Path, dst: &Path);
     fn duplicate_found(&mut self, src: &Path, dst: &Path);
 }
@@ -40,7 +41,7 @@ pub trait ScanListener : Debug {
 struct SilentListener;
 impl ScanListener for SilentListener {
     fn file_scanned(&mut self, _: &PathBuf, _: &Stats) {}
-    fn scan_over(&self, _: &Scanner, _: &Stats) {}
+    fn scan_over(&self, _: &Scanner, _: &Stats, _: Duration) {}
     fn hardlinked(&mut self, _: &Path, _: &Path) {}
     fn duplicate_found(&mut self, _: &Path, _: &Path) {}
 }
@@ -99,10 +100,12 @@ impl Scanner {
 
     /// Drains the queue of directories to scan
     pub fn flush(&mut self) -> io::Result<()> {
+        let start_time = Instant::now();
         while let Some((_, path)) = self.to_scan.pop() {
             self.scan_dir(path)?;
         }
-        self.scan_listener.scan_over(&self, &self.stats);
+        let scan_duration = Instant::now().duration_since(start_time);
+        self.scan_listener.scan_over(&self, &self.stats, scan_duration);
         Ok(())
     }
 

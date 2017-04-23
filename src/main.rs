@@ -59,22 +59,22 @@ fn main() {
     }
 
     let mut s = Scanner::new();
+    s.settings.dry_run = matches.opt_present("dry-run");
+    s.settings.ignore_small = !matches.opt_present("small");
     match output_mode {
         OutputMode::Quiet => {
             // Noop-output is already set by default.
         },
         OutputMode::Text => {
+            // TODO this print statement belongs into the TextUserInterface.
+            if s.settings.dry_run {
+                println!("Dry run. No files will be changed.");
+            }
             s.set_listener(Box::new(TextUserInterface::new()));
         }
         OutputMode::Json => {
             s.set_listener(Box::new(JsonOutput::new()))
         }
-    }
-    s.settings.dry_run = matches.opt_present("dry-run");
-    s.settings.ignore_small = !matches.opt_present("small");
-
-    if s.settings.dry_run {
-        println!("Dry run. No files will be changed.");
     }
 
     for arg in matches.free {
