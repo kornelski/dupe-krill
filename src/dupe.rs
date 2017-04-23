@@ -31,7 +31,7 @@ pub struct Stats {
 
 pub trait ScanListener : Debug {
     fn file_scanned(&mut self, path: &PathBuf, stats: &Stats);
-    fn scan_over(&mut self, stats: &Stats);
+    fn scan_over(&self, scanner: &Scanner, stats: &Stats);
     fn hardlinked(&mut self, src: &Path, dst: &Path);
     fn duplicate_found(&mut self, src: &Path, dst: &Path);
 }
@@ -40,7 +40,7 @@ pub trait ScanListener : Debug {
 struct SilentListener;
 impl ScanListener for SilentListener {
     fn file_scanned(&mut self, _: &PathBuf, _: &Stats) {}
-    fn scan_over(&mut self, _: &Stats) {}
+    fn scan_over(&self, _: &Scanner, _: &Stats) {}
     fn hardlinked(&mut self, _: &Path, _: &Path) {}
     fn duplicate_found(&mut self, _: &Path, _: &Path) {}
 }
@@ -102,7 +102,7 @@ impl Scanner {
         while let Some((_, path)) = self.to_scan.pop() {
             self.scan_dir(path)?;
         }
-        self.scan_listener.scan_over(&self.stats);
+        self.scan_listener.scan_over(&self, &self.stats);
         Ok(())
     }
 

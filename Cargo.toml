@@ -18,6 +18,9 @@ panic = "abort"
 [dependencies]
 getopts = "0.2.14"
 sha1 = "0.2.0"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
 
 [dev-dependencies]
 file = "1.1.1"

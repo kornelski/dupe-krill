@@ -1,6 +1,7 @@
 use std::time::Instant;
 use dupe::Stats;
 use dupe::ScanListener;
+use dupe::Scanner;
 use std::path::PathBuf;
 use std::path::Path;
 
@@ -38,7 +39,7 @@ impl ScanListener for UI {
         }
     }
 
-    fn scan_over(&mut self, stats: &Stats) {
+    fn scan_over(&self, _: &Scanner, stats: &Stats) {
         println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}.",
             stats.dupes, stats.hardlinks, stats.added, stats.skipped);
     }
