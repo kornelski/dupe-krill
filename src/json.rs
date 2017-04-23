@@ -22,7 +22,7 @@ impl ScanListener for JsonOutput {
     }
     fn scan_over(&self, scanner: &Scanner, stats: &Stats, scan_duration: Duration) {
         let data = JsonSerializable::new(scanner, stats, scan_duration);
-        let json_string = serde_json::to_string(&data).unwrap();
+        let json_string = serde_json::to_string_pretty(&data).unwrap();
         println!("{}", json_string);
     }
     fn hardlinked(&mut self, _: &Path, _: &Path) {
