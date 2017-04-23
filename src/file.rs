@@ -7,6 +7,7 @@ use metadata::Metadata;
 use hasher::Hasher;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "json",derive(Serialize))]
 pub struct FileSet {
     /// Tracks number of hardlinks from stat to also count unseen links outside scanned dirs
     pub max_hardlinks: u64,
