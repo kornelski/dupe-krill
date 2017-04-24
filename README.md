@@ -23,6 +23,16 @@ duplicate-kriller <files or directories> # find and replace with hardlinks
 
 See `duplicate-kriller -h` for details.
 
+### Output
+
+Progress shows:
+
+> `<number unique file bodies>`+`<number of hardlinks>` dupes. `<files checked>`+`<files skipped>` files scanned.
+
+Symlinks, special device files, and 0-sized files are always skipped.
+
+Don't try to parse program's usual output. Add `--json` option if you want machine-readable output. You can also use this program as a Rust library for seamless integration.
+
 ## The method
 
 Theoretically, you could find all duplicate files by putting them in a giant hash table mapping their content to paths:

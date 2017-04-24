@@ -37,18 +37,16 @@ fn main() {
     opts.optflag("h", "help", "This help text");
     opts.optflag("d", "dry-run", "Do not change anything on disk. Only print duplicates found");
     opts.optflag("s", "small", "Also dedupe small files (smaller than a disk block)");
-    opts.optopt("o", "output-mode", "How to show the results. Valid values are 'quiet', 'text' and 'json'. Default is 'text'", "MODE");
+    opts.optflag("q", "quiet", "No output");
+    opts.optflag("", "json", "Display results as JSON");
 
     let mut args = env::args();
     let program = args.next().unwrap_or(env!("CARGO_PKG_NAME").to_owned());
 
     let matches = opts.parse(args).unwrap();
-    let output_mode : OutputMode = matches.opt_str("output-mode").unwrap_or(String::from("text")).parse().unwrap_or_else(|e| match e {
-        OutputModeParseError::UnknownOutputMode(s) => {
-            writeln!(&mut std::io::stderr(), "Unknown output mode: {:?}", s).unwrap();
-            std::process::exit(1)
-        }
-    });
+    let output_mode = if matches.opt_present("json") {OutputMode::Json}
+        else if matches.opt_present("quiet") {OutputMode::Quiet}
+        else {OutputMode::Text};
 
     if matches.opt_present("h") || matches.free.is_empty() {
         println!("Hardlink files with duplicate content (v{}).\n{}\n\n{}",
