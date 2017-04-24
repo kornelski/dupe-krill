@@ -16,11 +16,11 @@ enum OutputMode {
 
 fn main() {
     let mut opts = Options::new();
-    opts.optflag("h", "help", "This help text");
-    opts.optflag("d", "dry-run", "Do not change anything on disk. Only print duplicates found");
+    opts.optflag("d", "dry-run", "Do not change anything on disk. Only print dupes found");
     opts.optflag("s", "small", "Also dedupe small files (smaller than a disk block)");
-    opts.optflag("q", "quiet", "No output");
+    opts.optflag("q", "quiet", "Hide regular progress output");
     opts.optflag("", "json", "Display results as JSON");
+    opts.optflag("h", "help", "This help text");
 
     let mut args = env::args();
     let program = args.next().unwrap_or(env!("CARGO_PKG_NAME").to_owned());
