@@ -116,6 +116,7 @@ impl Scanner {
         while let Some((_, path)) = self.to_scan.pop() {
             self.scan_dir(path)?;
         }
+        self.flush_deferred()?;
         let scan_duration = Instant::now().duration_since(start_time);
         self.scan_listener.scan_over(&self, &self.stats, scan_duration);
         Ok(())
@@ -180,6 +181,8 @@ impl Scanner {
                 Some(fileset)
             },
             HashEntry::Occupied(mut e) => {
+                // This case may require a deferred deduping later,
+                // if the new link belongs to an old fileset that has already been deduped.
                 let mut t = e.get_mut().lock().unwrap();
                 t.push(path.clone());
                 None
@@ -199,8 +202,20 @@ impl Scanner {
                 self.stats.dupes += 1;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
-                Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
+                // Deduping can either be done immediately or later. Immediate is more cache-friendly and interactive,
+                // but for files that already have hardlinks it can cause unnecessary re-linking. So if there are
+                // hardlinks in the set, wait until the end to dedupe when all hardlinks are known.
+                if filesets.iter().all(|set| set.lock().unwrap().links() == 1) {
+                    Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
+                }
             },
+        }
+        Ok(())
+    }
+
+    fn flush_deferred(&mut self) -> io::Result<()> {
+        for (_,filesets) in self.by_content.iter_mut() {
+            Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
         }
         Ok(())
     }
@@ -211,10 +226,27 @@ impl Scanner {
         }
 
         // Find file with the largest number of hardlinks, since it's less work to merge a small group into a large group
-        let (largest_idx, merged_fileset) = filesets.iter().enumerate().max_by_key(|&(i,f)| (f.lock().unwrap().links(),!i)).expect("fileset can't be empty");
+        let mut largest_idx = 0;
+        let mut largest_links = 0;
+        let mut nonempty_filesets = 0;
+        for (idx, fileset) in filesets.iter().enumerate() {
+            let fileset = fileset.lock().unwrap();
+            if fileset.paths.len() > 0 { // Only actual paths we can merge matter here
+                nonempty_filesets += 1;
+            }
+            let links = fileset.links();
+            if links > largest_links {
+                largest_idx = idx;
+                largest_links = links;
+            }
+        }
+
+        if nonempty_filesets == 0 {
+            return Ok(()); // Already merged
+        }
 
         // The set is still going to be in use! So everything has to be updated to make sense for the next call
-        let merged_paths = &mut merged_fileset.lock().unwrap().paths;
+        let merged_paths = &mut {filesets[largest_idx].lock()}.unwrap().paths;
         let source_path = merged_paths[0].clone();
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself

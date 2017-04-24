@@ -8,7 +8,7 @@ homepage = "https://github.com/pornel/duplicate-kriller"
 keywords = ["dupe", "duplicate", "deduplication"]
 categories = ["command-line-utilities", "filesystem"]
 license = "MIT"
-version = "1.0.0"
+version = "1.1.0"
 
 [profile.release]
 lto = true
