@@ -28,7 +28,7 @@ fn scan_hardlink() {
 
     let mut d = Scanner::new();
     d.settings.ignore_small = false;
-    d.settings.dry_run = true;
+    d.settings.run_mode = RunMode::DryRun;
     d.scan(dir.path()).unwrap();
     let dupes = d.dupes();
     assert_eq!(dupes.len(), 1);
