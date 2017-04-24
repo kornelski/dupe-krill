@@ -56,12 +56,14 @@ impl ScanListener for SilentListener {
     fn duplicate_found(&mut self, _: &Path, _: &Path) {}
 }
 
+type RcFileSet = Rc<Mutex<FileSet>>;
+
 #[derive(Debug)]
 pub struct Scanner {
     /// All hardlinks of the same inode have to be treated as the same file
-    by_inode: HashMap<(u64, u64), Rc<Mutex<FileSet>>>,
+    by_inode: HashMap<(u64, u64), RcFileSet>,
     /// See Hasher for explanation
-    by_content: BTreeMap<FileContent, Vec<Rc<Mutex<FileSet>>>>,
+    by_content: BTreeMap<FileContent, Vec<RcFileSet>>,
     /// Directories left to scan. Sorted by inode number.
     /// I'm assuming scanning in this order is faster, since inode is related to file's age,
     /// which is related to its physical position on disk, which makes the scan more sequential.
@@ -194,7 +196,7 @@ impl Scanner {
         Ok(())
     }
 
-    fn dedupe(filesets: &mut Vec<Rc<Mutex<FileSet>>>, run_mode: RunMode, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
+    fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
         if run_mode == RunMode::DryRunNoUI {
             return Ok(());
         }
