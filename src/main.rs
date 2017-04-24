@@ -4,7 +4,6 @@ extern crate duplicate_kriller;
 use duplicate_kriller::Scanner;
 use std::env;
 use std::path::PathBuf;
-use std::str::FromStr;
 use getopts::Options;
 use duplicate_kriller::*;
 use std::io::Write;
@@ -13,23 +12,6 @@ enum OutputMode {
     Quiet,
     Text,
     Json,
-}
-
-enum OutputModeParseError {
-    UnknownOutputMode(String),
-}
-
-impl FromStr for OutputMode {
-    type Err = OutputModeParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use OutputMode::*;
-        match s.to_lowercase().as_ref() {
-            "quiet" => Ok(Quiet),
-            "text" => Ok(Text),
-            "json" => Ok(Json),
-            s => Err(OutputModeParseError::UnknownOutputMode(String::from(s))),
-        }
-    }
 }
 
 fn main() {
