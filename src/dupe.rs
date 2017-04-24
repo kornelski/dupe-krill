@@ -19,7 +19,7 @@ pub enum RunMode {
     /// Merges paths in memory, but not on disk. Gives realistic UI output.
     DryRun,
     /// Like dry run, but completely skips deduping, with no UI for dupes.
-    DryRunNoUI,
+    DryRunNoMerging,
     Hardlink,
 }
 
@@ -196,7 +196,7 @@ impl Scanner {
     }
 
     fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
-        if run_mode == RunMode::DryRunNoUI {
+        if run_mode == RunMode::DryRunNoMerging {
             return Ok(());
         }
 

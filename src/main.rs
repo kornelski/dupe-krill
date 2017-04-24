@@ -73,7 +73,7 @@ fn main() {
         }
         OutputMode::Json => {
             if s.settings.run_mode == RunMode::DryRun {
-                s.settings.run_mode = RunMode::DryRunNoUI;
+                s.settings.run_mode = RunMode::DryRunNoMerging;
             }
             if cfg!(feature = "json") {
                 #[cfg(feature = "json")]
