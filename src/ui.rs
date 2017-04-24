@@ -40,8 +40,13 @@ impl ScanListener for UI {
     }
 
     fn scan_over(&self, _: &Scanner, stats: &Stats, scan_duration: Duration) {
-        println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}. Total scan duration: {:?}",
-            stats.dupes, stats.hardlinks, stats.added, stats.skipped, scan_duration);
+        let nice_duration = match scan_duration.as_secs() {
+            x @ 0 ... 5 => format!("{:.1}s", (x * 1_000_000_000 + scan_duration.subsec_nanos() as u64) as f64 / 1_000_000_000f64),
+            x @ 5 ... 59 => format!("{}s", x),
+            x => format!("{}m{}s", x/60, x%60),
+        };
+        println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}. Total scan duration: {}",
+            stats.dupes, stats.hardlinks, stats.added, stats.skipped, nice_duration);
     }
 
     fn hardlinked(&mut self, src: &Path, dst: &Path) {
