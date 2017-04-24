@@ -6,7 +6,9 @@ use std::env;
 use std::path::PathBuf;
 use getopts::Options;
 use duplicate_kriller::*;
+use std::io;
 use std::io::Write;
+use std::error::Error;
 
 enum OutputMode {
     Quiet,
@@ -65,9 +67,19 @@ fn main() {
         }
     }
 
-    for arg in matches.free {
+    match inner_main(s, matches.free) {
+        Ok(()) => {},
+        Err(err) => {
+            writeln!(&mut std::io::stderr(), "Error: {}; {}", err, err.description()).unwrap();
+            std::process::exit(1);
+        }
+    };
+}
+
+fn inner_main(mut s: Scanner, args: Vec<String>) -> io::Result<()> {
+    for arg in args {
         let path: PathBuf = arg.into();
-        s.enqueue(path).unwrap();
+        s.enqueue(path)?;
     }
-    s.flush().unwrap();
+    s.flush()
 }
