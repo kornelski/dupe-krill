@@ -22,8 +22,7 @@ impl FileSet {
         }
     }
 
-    pub fn push(&mut self, path: PathBuf, max_hardlinks: u64) {
-        self.max_hardlinks = max(self.max_hardlinks, max_hardlinks);
+    pub fn push(&mut self, path: PathBuf) {
         self.paths.push(path);
     }
 

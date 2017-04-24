@@ -161,20 +161,19 @@ impl Scanner {
 
         self.stats.added += 1;
 
-        let path_hardlinks = metadata.nlink();
         let m = (metadata.dev(), metadata.ino());
 
         // That's handling hardlinks
         let fileset = match self.by_inode.entry(m) {
             HashEntry::Vacant(e) => {
-                let fileset = Rc::new(Mutex::new(FileSet::new(path.clone(), path_hardlinks)));
+                let fileset = Rc::new(Mutex::new(FileSet::new(path.clone(), metadata.nlink())));
                 e.insert(fileset.clone()); // clone just bumps a refcount here
                 fileset
             },
             HashEntry::Occupied(mut e) => {
                 self.stats.hardlinks += 1;
                 let mut t = e.get_mut().lock().unwrap();
-                t.push(path, path_hardlinks);
+                t.push(path.clone());
                 return Ok(());
             }
         };
