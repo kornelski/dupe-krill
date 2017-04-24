@@ -106,7 +106,7 @@ impl Scanner {
     pub fn enqueue<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
         let path = fs::canonicalize(path)?;
         let metadata = fs::symlink_metadata(&path)?;
-        self.add(path, metadata)?;
+        self.add(path, &metadata)?;
         Ok(())
     }
 
@@ -127,13 +127,13 @@ impl Scanner {
         // FIXME: store the errors somehow to report them in a controlled manner
         for entry in fs::read_dir(path)?.filter_map(|p|p.ok()) {
             let path = entry.path();
-            self.add(path, entry.metadata()?).unwrap_or_else(|e| println!("{:?}", e));
+            self.add(path, &entry.metadata()?).unwrap_or_else(|e| println!("{:?}", e));
         }
         Ok(())
     }
 
 
-    fn add(&mut self, path: PathBuf, metadata: fs::Metadata) -> io::Result<()> {
+    fn add(&mut self, path: PathBuf, metadata: &fs::Metadata) -> io::Result<()> {
         self.scan_listener.file_scanned(&path, &self.stats);
 
         let ty = metadata.file_type();
@@ -158,28 +158,38 @@ impl Scanner {
             self.stats.skipped += 1;
             return Ok(());
         }
-
         self.stats.added += 1;
 
-        let m = (metadata.dev(), metadata.ino());
+        if let Some(fileset) = self.new_fileset(&path, &metadata) {
+            self.dedupe_by_content(fileset, path, &metadata)?;
+        } else {
+            self.stats.hardlinks += 1;
+        }
+        Ok(())
+    }
 
-        // That's handling hardlinks
-        let fileset = match self.by_inode.entry(m) {
+    /// Creates a new fileset if it's a new file.
+    /// Returns None if it's a hardlink of a file already seen.
+    fn new_fileset(&mut self, path: &PathBuf, metadata: &fs::Metadata) -> Option<RcFileSet> {
+        let device_inode = (metadata.dev(), metadata.ino());
+
+        match self.by_inode.entry(device_inode) {
             HashEntry::Vacant(e) => {
                 let fileset = Rc::new(Mutex::new(FileSet::new(path.clone(), metadata.nlink())));
                 e.insert(fileset.clone()); // clone just bumps a refcount here
-                fileset
+                Some(fileset)
             },
             HashEntry::Occupied(mut e) => {
-                self.stats.hardlinks += 1;
                 let mut t = e.get_mut().lock().unwrap();
                 t.push(path.clone());
-                return Ok(());
+                None
             }
-        };
+        }
+    }
 
-        // Here's where all the magic happens
-        match self.by_content.entry(FileContent::new(path, Metadata::new(&metadata))) {
+    /// Here's where all the magic happens
+    fn dedupe_by_content(&mut self, fileset: RcFileSet, path: PathBuf, metadata: &fs::Metadata) -> io::Result<()> {
+        match self.by_content.entry(FileContent::new(path, Metadata::new(metadata))) {
             BTreeEntry::Vacant(e) => {
                 // Seems unique so far
                 e.insert(vec![fileset]);
