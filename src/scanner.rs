@@ -121,7 +121,10 @@ impl Scanner {
     pub fn flush(&mut self) -> io::Result<()> {
         let start_time = Instant::now();
         while let Some((_, path)) = self.to_scan.pop() {
-            self.scan_dir(path)?;
+            if let Err(err) = self.scan_dir(&path) {
+                println!("Error scanning {}: {}", path.display(), err);
+                self.stats.skipped += 1;
+            }
         }
         self.flush_deferred()?;
         let scan_duration = Instant::now().duration_since(start_time);
@@ -129,7 +132,7 @@ impl Scanner {
         Ok(())
     }
 
-    fn scan_dir(&mut self, path: PathBuf) -> io::Result<()> {
+    fn scan_dir(&mut self, path: &PathBuf) -> io::Result<()> {
         /// Errors are ignored here, since it's super common to find permission denied and unreadable symlinks,
         /// and it'd be annoying if that aborted the whole operation.
         // FIXME: store the errors somehow to report them in a controlled manner
