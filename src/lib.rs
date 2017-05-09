@@ -8,7 +8,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
-mod dupe;
+mod scanner;
 mod file;
 mod hasher;
 mod lazyfile;
@@ -17,8 +17,8 @@ mod ui;
 #[cfg(feature = "json")]
 mod json;
 
-pub use dupe::Scanner;
-pub use dupe::RunMode;
+pub use scanner::Scanner;
+pub use scanner::RunMode;
 pub use file::FileContent;
 pub use ui::UI as TextUserInterface;
 #[cfg(feature = "json")]

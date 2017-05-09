@@ -1,6 +1,6 @@
-use dupe::Stats;
-use dupe::ScanListener;
-use dupe::Scanner;
+use scanner::Stats;
+use scanner::ScanListener;
+use scanner::Scanner;
 use std::path::PathBuf;
 use std::path::Path;
 use std::time::Duration;
