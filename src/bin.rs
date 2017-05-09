@@ -21,6 +21,7 @@ fn main() {
     opts.optflag("d", "dry-run", "Do not change anything on disk. Only print dupes found");
     opts.optflag("s", "small", "Also dedupe small files (smaller than a disk block)");
     opts.optflag("q", "quiet", "Hide regular progress output");
+    opts.optmulti("e", "exclude", "Don't scan directories or files with that filename (wildcards are not supported)", "<exact filename>");
     opts.optflag("", "json", "Display results as JSON");
     opts.optflag("h", "help", "This help text");
 
@@ -66,6 +67,8 @@ fn main() {
             }
         }
     }
+
+    s.exclude(matches.opt_strs("exclude"));
 
     match inner_main(s, matches.free) {
         Ok(()) => {},

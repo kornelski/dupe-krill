@@ -3,6 +3,7 @@ use std::io;
 use file::{FileContent, FileSet};
 use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
+use std::collections::HashSet;
 use std::collections::HashMap;
 use std::collections::BinaryHeap;
 use metadata::Metadata;
@@ -71,6 +72,7 @@ pub struct Scanner {
 
     scan_listener: Box<ScanListener>,
     stats: Stats,
+    exclude: HashSet<String>,
     pub settings: Settings,
 }
 
@@ -86,7 +88,12 @@ impl Scanner {
             to_scan: BinaryHeap::new(),
             scan_listener: Box::new(SilentListener),
             stats: Stats::default(),
+            exclude: HashSet::new(),
         }
+    }
+
+    pub fn exclude(&mut self, exclude: Vec<String>) {
+        self.exclude = exclude.into_iter().collect();
     }
 
     /// Set the scan listener. Caution: This overrides previously set listeners!
@@ -128,6 +135,12 @@ impl Scanner {
         // FIXME: store the errors somehow to report them in a controlled manner
         for entry in fs::read_dir(path)?.filter_map(|p|p.ok()) {
             let path = entry.path();
+            if let Some(file_name) = path.file_name() {
+                if self.exclude.contains(file_name.to_string_lossy().as_ref()) {
+                    self.stats.skipped += 1;
+                    continue;
+                }
+            }
             self.add(path, &entry.metadata()?).unwrap_or_else(|e| println!("{:?}", e));
         }
         Ok(())
