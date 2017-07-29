@@ -1,18 +1,19 @@
 # Duplicate k*r*iller — a fast file deduplicator
 
-Replaces duplicate files with identical content with hardlinks. Useful for reducing sizes of multiple backups, messy collections of photos and music, countless copies of `node_modules`, and anything else that's usually immutable (since all hardlinked copies of a file will change when any one of them is changed).
+Replaces files that have identical content with hardlinks, so that file data of all copies is stored only once, saving disk space. Useful for reducing sizes of multiple backups, messy collections of photos and music, countless copies of `node_modules`, and anything else that's usually immutable (since all hardlinked copies of a file will change when any one of them is changed).
 
-It's the first version of this program, so it may eat your data. It's been tested on macOS only. Use with caution (i.e. only stuff that is securely backed up).
 
 ## Features
 
 * It's pretty fast and reasonably memory-efficient.
 * Deduplicates incrementally as soon as duplicates are found.
 * Replaces files atomically and it's safe to interrupt at any time.
-* It's aware of hardlinks and supports merging of multiple groups of hardlinks.
+* It's aware of existing hardlinks and supports merging of multiple groups of hardlinks.
 * Gracefully handles symlinks and special files.
 
 ## Usage
+
+Works on macOS and Linux. Windows is not supported.
 
 If you have [Rust](https://www.rust-lang.org/), build the program with either `cargo install duplicate-kriller` or `cargo build --release`.
 
@@ -35,7 +36,7 @@ Don't try to parse program's usual output. Add `--json` option if you want machi
 
 ## The method
 
-Theoretically, you could find all duplicate files by putting them in a giant hash table mapping their content to paths:
+Theoretically, you could find all duplicate files by putting them in a giant hash table aggregating file paths and using their content as the key:
 
 ```rust
 HashMap<Vec<u8>, Vec<Path>>
@@ -49,13 +50,13 @@ BTW, probability of an accidental hash collision here is about quadrillion quadr
 HashMap<[u8; 16], Vec<Path>>
 ```
 
-but that's still pretty slow, since you still need to read all the content of all files. You can save some work by comparing file sizes first:
+but that's still pretty slow, since you still read entire content of all the files. You can save some work by comparing file sizes first:
 
 ```rust
 HashMap<u64, HashMap<[u8; 20], Vec<Path>>
 ```
 
-but it helps only a little, since file sizes are not uniformly distributed. You can eliminate a bit more of near-duplicates by comparing only beginnings of the files first:
+but it helps only a little, since files with identical sizes are surprisingly common. You can eliminate a bit more of near-duplicates by comparing only beginnings of the files first:
 
 ```rust
 HashMap<u64, HashMap<[u8; 20], HashMap<[u8; 20], Vec<Path>>>
