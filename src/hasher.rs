@@ -14,7 +14,7 @@ struct HashedRange {
 
 impl HashedRange {
     pub fn from_file(file: &mut LazyFile, start: u64, size: u64) -> Result<Self, io::Error> {
-        let mut fd = file.fd()?;
+        let fd = file.fd()?;
         let mut data = vec![0; size as usize];
         fd.seek(SeekFrom::Start(start))?;
         fd.read_exact(&mut data)?;

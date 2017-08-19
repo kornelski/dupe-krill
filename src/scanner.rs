@@ -133,8 +133,8 @@ impl Scanner {
     }
 
     fn scan_dir(&mut self, path: &PathBuf) -> io::Result<()> {
-        /// Errors are ignored here, since it's super common to find permission denied and unreadable symlinks,
-        /// and it'd be annoying if that aborted the whole operation.
+        // Errors are ignored here, since it's super common to find permission denied and unreadable symlinks,
+        // and it'd be annoying if that aborted the whole operation.
         // FIXME: store the errors somehow to report them in a controlled manner
         for entry in fs::read_dir(path)?.filter_map(|p|p.ok()) {
             let path = entry.path();
