@@ -1,5 +1,6 @@
 use std::fs;
 use std::io;
+use std::cmp;
 use file::{FileContent, FileSet};
 use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
@@ -171,7 +172,9 @@ impl Scanner {
             return Ok(());
         }
 
-        if metadata.size() == 0 || (self.settings.ignore_small && metadata.size() < metadata.blksize()) {
+        // APFS reports 4*MB* block size
+        let small_size = cmp::min(16*1024, metadata.blksize());
+        if metadata.size() == 0 || (self.settings.ignore_small && metadata.size() < small_size) {
             self.stats.skipped += 1;
             return Ok(());
         }
