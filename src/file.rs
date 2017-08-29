@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::cmp::Ordering;
 use std::cmp::max;
-use std::sync::Mutex;
+use std::cell::RefCell;
 use std::io;
 use metadata::Metadata;
 use hasher::Hasher;
@@ -39,7 +39,7 @@ pub struct FileContent {
     path: PathBuf,
     metadata: Metadata,
     /// Hashes of content, calculated incrementally
-    hashes: Mutex<Hasher>,
+    hashes: RefCell<Hasher>,
 }
 
 impl FileContent {
@@ -54,7 +54,7 @@ impl FileContent {
         FileContent {
             path: path,
             metadata: metadata,
-            hashes: Mutex::new(Hasher::new()),
+            hashes: RefCell::new(Hasher::new()),
         }
     }
 }
@@ -90,8 +90,8 @@ impl PartialOrd for FileContent {
             return Some(Ordering::Equal);
         }
 
-        let mut hashes1 = self.hashes.lock().unwrap();
-        let mut hashes2 = other.hashes.lock().unwrap();
+        let mut hashes1 = self.hashes.borrow_mut();
+        let mut hashes2 = other.hashes.borrow_mut();
 
         hashes1.compare(&mut *hashes2, self.metadata.size, &self.path, &other.path).ok()
     }

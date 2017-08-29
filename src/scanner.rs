@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::collections::BinaryHeap;
 use metadata::Metadata;
 use std::rc::Rc;
-use std::sync::Mutex;
+use std::cell::RefCell;
 use std::os::unix::fs::MetadataExt;
 use std::collections::hash_map::Entry as HashEntry;
 use std::collections::btree_map::Entry as BTreeEntry;
@@ -58,7 +58,7 @@ impl ScanListener for SilentListener {
     fn duplicate_found(&mut self, _: &Path, _: &Path) {}
 }
 
-type RcFileSet = Rc<Mutex<FileSet>>;
+type RcFileSet = Rc<RefCell<FileSet>>;
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -195,14 +195,14 @@ impl Scanner {
 
         match self.by_inode.entry(device_inode) {
             HashEntry::Vacant(e) => {
-                let fileset = Rc::new(Mutex::new(FileSet::new(path.clone(), metadata.nlink())));
+                let fileset = Rc::new(RefCell::new(FileSet::new(path.clone(), metadata.nlink())));
                 e.insert(fileset.clone()); // clone just bumps a refcount here
                 Some(fileset)
             },
             HashEntry::Occupied(mut e) => {
                 // This case may require a deferred deduping later,
                 // if the new link belongs to an old fileset that has already been deduped.
-                let mut t = e.get_mut().lock().unwrap();
+                let mut t = e.get_mut().borrow_mut();
                 t.push(path.clone());
                 None
             }
@@ -224,7 +224,7 @@ impl Scanner {
                 // Deduping can either be done immediately or later. Immediate is more cache-friendly and interactive,
                 // but for files that already have hardlinks it can cause unnecessary re-linking. So if there are
                 // hardlinks in the set, wait until the end to dedupe when all hardlinks are known.
-                if filesets.iter().all(|set| set.lock().unwrap().links() == 1) {
+                if filesets.iter().all(|set| set.borrow().links() == 1) {
                     Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
                 }
             },
@@ -249,7 +249,7 @@ impl Scanner {
         let mut largest_links = 0;
         let mut nonempty_filesets = 0;
         for (idx, fileset) in filesets.iter().enumerate() {
-            let fileset = fileset.lock().unwrap();
+            let fileset = fileset.borrow();
             if fileset.paths.len() > 0 { // Only actual paths we can merge matter here
                 nonempty_filesets += 1;
             }
@@ -265,13 +265,13 @@ impl Scanner {
         }
 
         // The set is still going to be in use! So everything has to be updated to make sense for the next call
-        let merged_paths = &mut {filesets[largest_idx].lock()}.unwrap().paths;
+        let merged_paths = &mut {filesets[largest_idx].borrow_mut()}.paths;
         let source_path = merged_paths[0].clone();
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself
             if i == largest_idx {continue;}
 
-            let paths = &mut set.lock().unwrap().paths;
+            let paths = &mut set.borrow_mut().paths;
             // dest_path will be "lost" on error, but that's fine, since we don't want to dedupe it if it causes errors
             for dest_path in paths.drain(..) {
                 assert_ne!(&source_path, &dest_path);
@@ -313,7 +313,7 @@ impl Scanner {
     pub fn dupes(&self) -> Vec<Vec<FileSet>> {
         self.by_content.iter().map(|(_,filesets)|{
             filesets.iter().map(|d|{
-                let tmp = d.lock().unwrap();
+                let tmp = d.borrow();
                 (*tmp).clone()
             }).collect()
         }).collect()
