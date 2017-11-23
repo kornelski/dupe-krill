@@ -47,7 +47,7 @@ impl JsonSerializable {
             creator: format!("duplicate-kriller {}", env!("CARGO_PKG_VERSION")),
             dupes: scanner.dupes().into_iter()
                 .map(|sets|{
-                    sets.into_iter().filter(|set|set.paths.len() > 0).map(|set|set.paths).collect::<Vec<_>>()
+                    sets.into_iter().filter(|set| !set.paths.is_empty()).map(|set|set.paths).collect::<Vec<_>>()
                 })
                 .filter(|sets| {
                     sets.len() > 1 || sets.iter().any(|set| set.len() > 1)

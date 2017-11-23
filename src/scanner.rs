@@ -129,7 +129,7 @@ impl Scanner {
         }
         self.flush_deferred()?;
         let scan_duration = Instant::now().duration_since(start_time);
-        self.scan_listener.scan_over(&self, &self.stats, scan_duration);
+        self.scan_listener.scan_over(self, &self.stats, scan_duration);
         Ok(())
     }
 
@@ -180,8 +180,8 @@ impl Scanner {
         }
         self.stats.added += 1;
 
-        if let Some(fileset) = self.new_fileset(&path, &metadata) {
-            self.dedupe_by_content(fileset, path, &metadata)?;
+        if let Some(fileset) = self.new_fileset(&path, metadata) {
+            self.dedupe_by_content(fileset, path, metadata)?;
         } else {
             self.stats.hardlinks += 1;
         }
@@ -196,7 +196,7 @@ impl Scanner {
         match self.by_inode.entry(device_inode) {
             HashEntry::Vacant(e) => {
                 let fileset = Rc::new(RefCell::new(FileSet::new(path.clone(), metadata.nlink())));
-                e.insert(fileset.clone()); // clone just bumps a refcount here
+                e.insert(Rc::clone(&fileset)); // clone just bumps a refcount here
                 Some(fileset)
             },
             HashEntry::Occupied(mut e) => {
@@ -225,7 +225,7 @@ impl Scanner {
                 // but for files that already have hardlinks it can cause unnecessary re-linking. So if there are
                 // hardlinks in the set, wait until the end to dedupe when all hardlinks are known.
                 if filesets.iter().all(|set| set.borrow().links() == 1) {
-                    Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
+                    Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener)?;
                 }
             },
         }
@@ -233,13 +233,13 @@ impl Scanner {
     }
 
     fn flush_deferred(&mut self) -> io::Result<()> {
-        for (_,filesets) in self.by_content.iter_mut() {
-            Self::dedupe(filesets, self.settings.run_mode, &mut self.scan_listener)?;
+        for (_,filesets) in &mut self.by_content {
+            Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener)?;
         }
         Ok(())
     }
 
-    fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut Box<ScanListener>) -> io::Result<()> {
+    fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut ScanListener) -> io::Result<()> {
         if run_mode == RunMode::DryRunNoMerging {
             return Ok(());
         }
@@ -250,7 +250,7 @@ impl Scanner {
         let mut nonempty_filesets = 0;
         for (idx, fileset) in filesets.iter().enumerate() {
             let fileset = fileset.borrow();
-            if fileset.paths.len() > 0 { // Only actual paths we can merge matter here
+            if !fileset.paths.is_empty() { // Only actual paths we can merge matter here
                 nonempty_filesets += 1;
             }
             let links = fileset.links();

@@ -45,7 +45,7 @@ fn different_files_big() {
     let a_path = dir.path().join("a_big");
     let b_path = dir.path().join("b_big");
 
-    let mut content = vec![0xffu8; 100000];
+    let mut content = vec![0xffu8; 100_000];
 
     file::put(&a_path, &content).unwrap();
     content[88888] = 1;

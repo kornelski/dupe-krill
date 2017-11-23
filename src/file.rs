@@ -28,13 +28,13 @@ impl FileSet {
 
     /// Number of known hardlinks to this file content
     pub fn links(&self) -> u64 {
-        return max(self.max_hardlinks, self.paths.len() as u64)
+        max(self.max_hardlinks, self.paths.len() as u64)
     }
 }
 
 
 #[derive(Debug)]
-/// File content is efficiently compared using this struct's PartialOrd implementation
+/// File content is efficiently compared using this struct's `PartialOrd` implementation
 pub struct FileContent {
     path: PathBuf,
     metadata: Metadata,
