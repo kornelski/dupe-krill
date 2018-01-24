@@ -339,13 +339,13 @@ impl Scanner {
                 // In posix link guarantees not to overwrite, and mv guarantes to move atomically
                 // so this two-step replacement is pretty robust
                 if let Err(err) = fs::hard_link(&source_path, &temp_path) {
-                    eprintln!("unable to hardlink {} {} due to {:?}", source_path.display(), temp_path.display(), err);
-                    fs::remove_file(temp_path).ok();
+                    eprintln!("unable to hardlink {} {} due to {}", source_path.display(), temp_path.display(), err);
+                    let _ = fs::remove_file(temp_path);
                     return Err(err);
                 }
                 if let Err(err) = fs::rename(&temp_path, &dest_path) {
-                    eprintln!("unable to rename {} {} due to {:?}", temp_path.display(), dest_path.display(), err);
-                    fs::remove_file(temp_path).ok();
+                    eprintln!("unable to rename {} {} due to {}", temp_path.display(), dest_path.display(), err);
+                    let _ = fs::remove_file(temp_path);
                     return Err(err);
                 }
                 debug_assert!(!temp_path.exists());

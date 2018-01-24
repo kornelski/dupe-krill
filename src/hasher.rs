@@ -8,8 +8,8 @@ use lazyfile::LazyFile;
 /// A hashed chunk of data of arbitrary size. Files are compared a bit by bit.
 #[derive(Debug, PartialOrd, Eq, PartialEq, Ord)]
 struct HashedRange {
-    hash: [u8; 20],
     size: u64,
+    hash: [u8; 20],
 }
 
 impl HashedRange {
@@ -32,7 +32,7 @@ impl HashedRange {
 
 #[derive(Debug)]
 pub struct Hasher {
-    ranges: Vec<HashedRange>,
+    ranges: Vec<Option<HashedRange>>,
 }
 
 /// Compares two files using hashes by hashing incrementally until the first difference is found
@@ -68,18 +68,23 @@ impl<'h> HashIter<'h> {
             let a = a_hash.ranges.get(i);
             let b = b_hash.ranges.get(i);
 
+            let failed = a.map_or(false, |a| a.is_none()) || b.map_or(false, |b| b.is_none());
+            if failed {
+                return Err(io::Error::new(io::ErrorKind::Other, "cmp i/o"));
+            }
+
             // If there is an existing hashed chunk, the chunk size used for comparison must obviously be it.
-            let size = a.map(|a|a.size).or(b.map(|b|b.size))
+            let size = a.and_then(|a|a.as_ref().map(|a|a.size)).or(b.and_then(|b|b.as_ref().map(|b|b.size)))
                 .unwrap_or(min(self.end_offset - self.start_offset, self.next_buffer_size));
             (a.is_none(), b.is_none(), size)
         };
 
         // If any of the ranges is missing, compute it
         if a_none {
-            a_hash.ranges.push(HashedRange::from_file(&mut self.a_file, self.start_offset, size)?);
+            a_hash.push(HashedRange::from_file(&mut self.a_file, self.start_offset, size));
         }
         if b_none {
-            b_hash.ranges.push(HashedRange::from_file(&mut self.b_file, self.start_offset, size)?);
+            b_hash.push(HashedRange::from_file(&mut self.b_file, self.start_offset, size));
         }
 
         self.index += 1;
@@ -90,7 +95,10 @@ impl<'h> HashIter<'h> {
         // the difference in the first few KB, but grow quickly to read identical files faster.
         self.next_buffer_size = min(size * 8, 128*1024*1024);
 
-        Ok(Some((&a_hash.ranges[i], &b_hash.ranges[i])))
+        match (a_hash.ranges.get(i), b_hash.ranges.get(i)) {
+            (Some(Some(a)), Some(Some(b))) => Ok(Some((a, b))),
+            _ => Err(io::Error::new(io::ErrorKind::Other, "cmp i/o")),
+        }
     }
 }
 
@@ -99,6 +107,16 @@ impl Hasher {
         Hasher {
             ranges: Vec::new(),
         }
+    }
+
+    fn push(&mut self, range: Result<HashedRange, io::Error>) {
+        let r = match range {
+            Ok(r) => Some(r),
+            Err(e) => {
+                None
+            }
+        };
+        self.ranges.push(r);
     }
 
     /// Incremental comparison reading files lazily
