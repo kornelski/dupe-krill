@@ -110,7 +110,7 @@ impl Scanner {
             stats: Stats::default(),
             exclude: HashSet::new(),
             deferred_count: 0,
-            next_deferred_count: 100,
+            next_deferred_count: 4096,
         }
     }
 
