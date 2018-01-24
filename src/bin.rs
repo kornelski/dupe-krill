@@ -1,4 +1,5 @@
 extern crate getopts;
+extern crate ctrlc;
 extern crate duplicate_kriller;
 
 use duplicate_kriller::Scanner;
@@ -9,12 +10,15 @@ use duplicate_kriller::*;
 use std::io;
 use std::io::Write;
 use std::error::Error;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 
 enum OutputMode {
     Quiet,
     Text,
     Json,
 }
+static CTRL_C_BREAKS: AtomicUsize = std::sync::atomic::ATOMIC_USIZE_INIT;
 
 fn main() {
     let mut opts = Options::new();
@@ -40,7 +44,12 @@ fn main() {
         return;
     }
 
+    ctrlc::set_handler(move || {
+        CTRL_C_BREAKS.fetch_add(1, Ordering::SeqCst);
+    }).ok();
+
     let mut s = Scanner::new();
+    s.settings.break_on = Some(&CTRL_C_BREAKS);
     s.settings.run_mode = if matches.opt_present("dry-run") {RunMode::DryRun} else {RunMode::Hardlink};
     s.settings.ignore_small = !matches.opt_present("small");
     match output_mode {

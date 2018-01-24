@@ -15,6 +15,8 @@ use std::collections::hash_map::Entry as HashEntry;
 use std::collections::btree_map::Entry as BTreeEntry;
 use std::fmt::Debug;
 use std::time::{Duration,Instant};
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum RunMode {
@@ -31,6 +33,19 @@ pub struct Settings {
     /// Deduping of such files is unlikely to save space.
     pub ignore_small: bool,
     pub run_mode: RunMode,
+
+    // If 1, go to flush. If > 1, abort immediately.
+    pub break_on: Option<&'static AtomicUsize>,
+}
+
+impl Settings {
+    pub fn breaks(&self) -> usize {
+        if let Some(break_on) = self.break_on {
+            break_on.load(Ordering::SeqCst)
+        } else {
+            0
+        }
+    }
 }
 
 #[derive(Debug,Default,Copy,Clone)]
@@ -86,6 +101,7 @@ impl Scanner {
             settings: Settings {
                 ignore_small: true,
                 run_mode: RunMode::Hardlink,
+                break_on: None,
             },
             by_inode: HashMap::new(),
             by_content: BTreeMap::new(),
@@ -131,6 +147,10 @@ impl Scanner {
                 eprintln!("Error scanning {}: {}", path.display(), err);
                 self.stats.skipped += 1;
             }
+            if self.settings.breaks() > 0 {
+                eprintln!("Stopping scan");
+                break;
+            }
         }
         self.flush_deferred()?;
         let scan_duration = Instant::now().duration_since(start_time);
@@ -143,6 +163,10 @@ impl Scanner {
         // and it'd be annoying if that aborted the whole operation.
         // FIXME: store the errors somehow to report them in a controlled manner
         for entry in fs::read_dir(path)?.filter_map(|p|p.ok()) {
+            if self.settings.breaks() > 0 {
+                break;
+            }
+
             let path = entry.path();
             if let Some(file_name) = path.file_name() {
                 if self.exclude.contains(file_name.to_string_lossy().as_ref()) {
@@ -254,6 +278,10 @@ impl Scanner {
 
     fn flush_deferred(&mut self) -> io::Result<()> {
         for (_,filesets) in &mut self.by_content {
+            if self.settings.breaks() > 1 {
+                eprintln!("Aborting");
+                break;
+            }
             Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener)?;
         }
         Ok(())
