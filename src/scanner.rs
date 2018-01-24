@@ -75,6 +75,9 @@ pub struct Scanner {
     stats: Stats,
     exclude: HashSet<String>,
     pub settings: Settings,
+
+    deferred_count: usize,
+    next_deferred_count: usize,
 }
 
 impl Scanner {
@@ -90,6 +93,8 @@ impl Scanner {
             scan_listener: Box::new(SilentListener),
             stats: Stats::default(),
             exclude: HashSet::new(),
+            deferred_count: 0,
+            next_deferred_count: 100,
         }
     }
 
@@ -211,6 +216,7 @@ impl Scanner {
 
     /// Here's where all the magic happens
     fn dedupe_by_content(&mut self, fileset: RcFileSet, path: PathBuf, metadata: &fs::Metadata) -> io::Result<()> {
+        let mut deferred = false;
         match self.by_content.entry(FileContent::new(path, Metadata::new(metadata))) {
             BTreeEntry::Vacant(e) => {
                 // Seems unique so far
@@ -226,8 +232,22 @@ impl Scanner {
                 // hardlinks in the set, wait until the end to dedupe when all hardlinks are known.
                 if filesets.iter().all(|set| set.borrow().links() == 1) {
                     Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener)?;
+                } else {
+                    deferred = true;
                 }
             },
+        }
+
+        // Periodically flush deferred files to avoid building a huge queue
+        // (the growing limit is a compromise between responsiveness
+        // and potential to hit a pathological case of hardlinking with wrong hardlink groups)
+        if deferred {
+            self.deferred_count += 1;
+            if self.deferred_count >= self.next_deferred_count {
+                self.next_deferred_count *= 2;
+                self.deferred_count = 0;
+                self.flush_deferred()?;
+            }
         }
         Ok(())
     }
