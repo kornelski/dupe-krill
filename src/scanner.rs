@@ -128,7 +128,7 @@ impl Scanner {
         let start_time = Instant::now();
         while let Some((_, path)) = self.to_scan.pop() {
             if let Err(err) = self.scan_dir(&path) {
-                println!("Error scanning {}: {}", path.display(), err);
+                eprintln!("Error scanning {}: {}", path.display(), err);
                 self.stats.skipped += 1;
             }
         }
@@ -150,7 +150,7 @@ impl Scanner {
                     continue;
                 }
             }
-            self.add(path, &entry.metadata()?).unwrap_or_else(|e| println!("{:?}", e));
+            self.add(path, &entry.metadata()?).unwrap_or_else(|e| eprintln!("{:?}", e));
         }
         Ok(())
     }
@@ -311,12 +311,12 @@ impl Scanner {
                 // In posix link guarantees not to overwrite, and mv guarantes to move atomically
                 // so this two-step replacement is pretty robust
                 if let Err(err) = fs::hard_link(&source_path, &temp_path) {
-                    println!("unable to hardlink {} {} due to {:?}", source_path.display(), temp_path.display(), err);
+                    eprintln!("unable to hardlink {} {} due to {:?}", source_path.display(), temp_path.display(), err);
                     fs::remove_file(temp_path).ok();
                     return Err(err);
                 }
                 if let Err(err) = fs::rename(&temp_path, &dest_path) {
-                    println!("unable to rename {} {} due to {:?}", temp_path.display(), dest_path.display(), err);
+                    eprintln!("unable to rename {} {} due to {:?}", temp_path.display(), dest_path.display(), err);
                     fs::remove_file(temp_path).ok();
                     return Err(err);
                 }
