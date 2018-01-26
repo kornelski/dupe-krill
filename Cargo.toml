@@ -1,18 +1,18 @@
 [package]
 authors = ["Kornel Lesiński <kornel@geekhood.net>"]
 description = "A fast file deduplicator. Replaces duplicate files with identical content with hardlinks."
-documentation = "https://github.com/kornelski/duplicate-kriller#readme"
-homepage = "https://github.com/kornelski/duplicate-kriller"
+documentation = "https://github.com/kornelski/dupe-krill#readme"
+homepage = "https://github.com/kornelski/dupe-krill"
 keywords = ["dupe", "duplicate", "deduplication"]
 categories = ["command-line-utilities", "filesystem"]
 license = "MIT"
 name = "duplicate-kriller"
 readme = "README.md"
-repository = "https://github.com/kornelski/duplicate-kriller"
+repository = "https://github.com/kornelski/dupe-krill"
 version = "1.3.0"
 
 [[bin]]
-name = "duplicate-kriller"
+name = "dupe-krill"
 path = "src/bin.rs"
 
 [profile.release]

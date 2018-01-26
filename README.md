@@ -1,4 +1,4 @@
-# Duplicate k*r*iller — a fast file deduplicator
+# Dupe k*r*ill — a fast file deduplicator
 
 Replaces files that have identical content with hardlinks, so that file data of all copies is stored only once, saving disk space. Useful for reducing sizes of multiple backups, messy collections of photos and music, countless copies of `node_modules`, and anything else that's usually immutable (since all hardlinked copies of a file will change when any one of them is changed).
 
@@ -18,11 +18,11 @@ Works on macOS and Linux. Windows is not supported.
 If you have [Rust](https://www.rust-lang.org/), build the program with either `cargo install duplicate-kriller` or `cargo build --release`.
 
 ```sh
-duplicate-kriller -d <files or directories> # find dupes without doing anything
-duplicate-kriller <files or directories> # find and replace with hardlinks
+dupe-krill -d <files or directories> # find dupes without doing anything
+dupe-krill <files or directories> # find and replace with hardlinks
 ```
 
-See `duplicate-kriller -h` for details.
+See `dupe-krill -h` for details.
 
 ### Output
 
