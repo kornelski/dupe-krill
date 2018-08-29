@@ -174,7 +174,9 @@ impl Scanner {
                     continue;
                 }
             }
-            self.add(path, &entry.metadata()?).unwrap_or_else(|e| eprintln!("{:?}", e));
+            if let Err(err) = self.add(path, &entry.metadata()?) {
+                eprintln!("{}: {}", entry.path().display(), err);
+            }
         }
         Ok(())
     }
@@ -282,7 +284,9 @@ impl Scanner {
                 eprintln!("Aborting");
                 break;
             }
-            Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener)?;
+            if let Err(err) = Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener) {
+                eprintln!("{}", err);
+            }
         }
         Ok(())
     }
