@@ -112,7 +112,8 @@ impl Hasher {
     fn push(&mut self, range: Result<HashedRange, io::Error>) {
         let r = match range {
             Ok(r) => Some(r),
-            Err(e) => {
+            Err(err) => {
+                eprintln!("Can't compare files: {}", err);
                 None
             }
         };
