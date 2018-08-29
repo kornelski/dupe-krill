@@ -15,7 +15,7 @@ Replaces files that have identical content with hardlinks, so that file data of 
 
 Works on macOS and Linux. Windows is not supported.
 
-If you have [Rust](https://www.rust-lang.org/), build the program with either `cargo install duplicate-kriller` or `cargo build --release`.
+If you have [Rust](https://www.rust-lang.org/), build the program with either `cargo install dupe-krill` or `cargo build --release`.
 
 ```sh
 dupe-krill -d <files or directories> # find dupes without doing anything

@@ -1,12 +1,12 @@
 extern crate getopts;
 extern crate ctrlc;
-extern crate duplicate_kriller;
+extern crate dupe_krill;
 
-use duplicate_kriller::Scanner;
+use dupe_krill::Scanner;
 use std::env;
 use std::path::PathBuf;
 use getopts::Options;
-use duplicate_kriller::*;
+use dupe_krill::*;
 use std::io;
 use std::io::Write;
 use std::error::Error;
