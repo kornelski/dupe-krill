@@ -74,7 +74,9 @@ impl<'h> HashIter<'h> {
             }
 
             // If there is an existing hashed chunk, the chunk size used for comparison must obviously be it.
-            let size = a.and_then(|a|a.as_ref().map(|a|a.size)).or(b.and_then(|b|b.as_ref().map(|b|b.size)))
+            let size = a
+                .and_then(|a| a.as_ref().map(|a| a.size))
+                .or(b.and_then(|b| b.as_ref().map(|b| b.size)))
                 .unwrap_or(min(self.end_offset - self.start_offset, self.next_buffer_size));
             (a.is_none(), b.is_none(), size)
         };
@@ -93,7 +95,7 @@ impl<'h> HashIter<'h> {
         // and reading files one by one without trashing.
         // Exponential increase is meant to be a compromise that allows finding
         // the difference in the first few KB, but grow quickly to read identical files faster.
-        self.next_buffer_size = min(size * 8, 128*1024*1024);
+        self.next_buffer_size = min(size * 8, 128 * 1024 * 1024);
 
         match (a_hash.ranges.get(i), b_hash.ranges.get(i)) {
             (Some(Some(a)), Some(Some(b))) => Ok(Some((a, b))),
@@ -115,16 +117,16 @@ impl Hasher {
             Err(err) => {
                 eprintln!("Can't compare files: {}", err);
                 None
-            }
+            },
         };
         self.ranges.push(r);
     }
 
     /// Incremental comparison reading files lazily
-    pub fn compare(&mut self, other: &mut Hasher, size: u64, self_path: &Path, other_path: &Path) -> Result<Ordering,io::Error> {
+    pub fn compare(&mut self, other: &mut Hasher, size: u64, self_path: &Path, other_path: &Path) -> Result<Ordering, io::Error> {
         let mut iter = HashIter::new(size, self_path, other_path);
 
-        while let Some((a,b)) = iter.next(self, other)? {
+        while let Some((a, b)) = iter.next(self, other)? {
             let ord = a.cmp(b);
             if ord != Ordering::Equal {
                 return Ok(ord);
@@ -149,7 +151,7 @@ mod test {
         let hashed = HashedRange::from_file(&mut file, 0, 4).expect("hash");
 
         assert_eq!(4, hashed.size);
-        assert_eq!([199,31,32,178,46,189,89,221,26,72,162,140,182,69,43,154,40,195,32,163], hashed.hash);
+        assert_eq!([199, 31, 32, 178, 46, 189, 89, 221, 26, 72, 162, 140, 182, 69, 43, 154, 40, 195, 32, 163], hashed.hash);
 
         let hashed = HashedRange::from_file(&mut file, 1, 2).expect("hash2");
         assert_eq!(2, hashed.size);

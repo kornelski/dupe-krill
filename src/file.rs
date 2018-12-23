@@ -11,7 +11,7 @@ use std::path::PathBuf;
 pub struct FileSet {
     /// Tracks number of hardlinks from stat to also count unseen links outside scanned dirs
     pub max_hardlinks: u64,
-    pub paths: Vec<PathBuf>
+    pub paths: Vec<PathBuf>,
 }
 
 impl FileSet {
@@ -31,7 +31,6 @@ impl FileSet {
         max(self.max_hardlinks, self.paths.len() as u64)
     }
 }
-
 
 #[derive(Debug)]
 /// File content is efficiently compared using this struct's `PartialOrd` implementation
@@ -59,12 +58,11 @@ impl FileContent {
     }
 }
 
-impl Eq for FileContent {
-}
+impl Eq for FileContent {}
 
 impl PartialEq for FileContent {
     fn eq(&self, other: &Self) -> bool {
-        self.partial_cmp(other).map_or(false, |o|o == Ordering::Equal)
+        self.partial_cmp(other).map_or(false, |o| o == Ordering::Equal)
     }
 }
 
@@ -102,4 +100,3 @@ impl FileContent {
         hashes1.compare(&mut *hashes2, self.metadata.size, &self.path, &other.path)
     }
 }
-

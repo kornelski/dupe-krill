@@ -57,7 +57,7 @@ pub struct Stats {
     pub hardlinks: usize,
 }
 
-pub trait ScanListener : Debug {
+pub trait ScanListener: Debug {
     fn file_scanned(&mut self, path: &PathBuf, stats: &Stats);
     fn scan_over(&self, scanner: &Scanner, stats: &Stats, scan_duration: Duration);
     fn hardlinked(&mut self, src: &Path, dst: &Path);
@@ -68,8 +68,11 @@ pub trait ScanListener : Debug {
 struct SilentListener;
 impl ScanListener for SilentListener {
     fn file_scanned(&mut self, _: &PathBuf, _: &Stats) {}
+
     fn scan_over(&self, _: &Scanner, _: &Stats, _: Duration) {}
+
     fn hardlinked(&mut self, _: &Path, _: &Path) {}
+
     fn duplicate_found(&mut self, _: &Path, _: &Path) {}
 }
 
@@ -162,7 +165,7 @@ impl Scanner {
         // Errors are ignored here, since it's super common to find permission denied and unreadable symlinks,
         // and it'd be annoying if that aborted the whole operation.
         // FIXME: store the errors somehow to report them in a controlled manner
-        for entry in fs::read_dir(path)?.filter_map(|p|p.ok()) {
+        for entry in fs::read_dir(path)?.filter_map(|p| p.ok()) {
             if self.settings.breaks() > 0 {
                 break;
             }
@@ -180,7 +183,6 @@ impl Scanner {
         }
         Ok(())
     }
-
 
     fn add(&mut self, path: PathBuf, metadata: &fs::Metadata) -> io::Result<()> {
         self.scan_listener.file_scanned(&path, &self.stats);
@@ -204,7 +206,7 @@ impl Scanner {
         }
 
         // APFS reports 4*MB* block size
-        let small_size = cmp::min(16*1024, metadata.blksize());
+        let small_size = cmp::min(16 * 1024, metadata.blksize());
         if metadata.size() == 0 || (self.settings.ignore_small && metadata.size() < small_size) {
             self.stats.skipped += 1;
             return Ok(());
@@ -236,7 +238,7 @@ impl Scanner {
                 let mut t = e.get_mut().borrow_mut();
                 t.push(path.clone());
                 None
-            }
+            },
         }
     }
 
@@ -279,7 +281,7 @@ impl Scanner {
     }
 
     fn flush_deferred(&mut self) -> io::Result<()> {
-        for (_,filesets) in &mut self.by_content {
+        for (_, filesets) in &mut self.by_content {
             if self.settings.breaks() > 1 {
                 eprintln!("Aborting");
                 break;
@@ -302,7 +304,8 @@ impl Scanner {
         let mut nonempty_filesets = 0;
         for (idx, fileset) in filesets.iter().enumerate() {
             let fileset = fileset.borrow();
-            if !fileset.paths.is_empty() { // Only actual paths we can merge matter here
+            if !fileset.paths.is_empty() {
+                // Only actual paths we can merge matter here
                 nonempty_filesets += 1;
             }
             let links = fileset.links();
@@ -317,11 +320,13 @@ impl Scanner {
         }
 
         // The set is still going to be in use! So everything has to be updated to make sense for the next call
-        let merged_paths = &mut {filesets[largest_idx].borrow_mut()}.paths;
+        let merged_paths = &mut { filesets[largest_idx].borrow_mut() }.paths;
         let source_path = merged_paths[0].clone();
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself
-            if i == largest_idx {continue;}
+            if i == largest_idx {
+                continue;
+            }
 
             let paths = &mut set.borrow_mut().paths;
             // dest_path will be "lost" on error, but that's fine, since we don't want to dedupe it if it causes errors

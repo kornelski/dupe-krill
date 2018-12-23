@@ -86,4 +86,3 @@ fn symlink() {
     assert_ne!(a, b);
     assert_eq!(b, b);
 }
-
