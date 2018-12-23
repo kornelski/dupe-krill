@@ -1,13 +1,13 @@
-use std::path::PathBuf;
-use std::cmp::Ordering;
-use std::cmp::max;
+use crate::hasher::Hasher;
+use crate::metadata::Metadata;
 use std::cell::RefCell;
+use std::cmp::max;
+use std::cmp::Ordering;
 use std::io;
-use metadata::Metadata;
-use hasher::Hasher;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "json",derive(Serialize))]
+#[cfg_attr(feature = "json", derive(serde_derive::Serialize))]
 pub struct FileSet {
     /// Tracks number of hardlinks from stat to also count unseen links outside scanned dirs
     pub max_hardlinks: u64,

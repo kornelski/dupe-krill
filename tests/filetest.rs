@@ -1,19 +1,16 @@
-extern crate file;
-extern crate tempdir;
-extern crate duplicate_kriller;
-
+use dupe_krill;
+use dupe_krill::*;
 use std::fs;
+use tempdir;
 use tempdir::TempDir;
-use duplicate_kriller::*;
 
 #[test]
 fn hardlink_of_same_file() {
-
     let dir = TempDir::new("hardlinktest").unwrap();
     let a_path = dir.path().join("a");
     let b_path = dir.path().join("b");
 
-    file::put_text(&a_path, "hello").unwrap();
+    fs::write(&a_path, "hello").unwrap();
 
     fs::hard_link(&a_path, &b_path).unwrap();
 
@@ -29,8 +26,8 @@ fn different_files() {
     let a_path = dir.path().join("a");
     let b_path = dir.path().join("b");
 
-    file::put_text(&a_path, "hello").unwrap();
-    file::put_text(&b_path, "world").unwrap();
+    fs::write(&a_path, "hello").unwrap();
+    fs::write(&b_path, "world").unwrap();
 
     let a = FileContent::from_path(a_path).unwrap();
     let b = FileContent::from_path(b_path).unwrap();
@@ -47,9 +44,9 @@ fn different_files_big() {
 
     let mut content = vec![0xffu8; 100_000];
 
-    file::put(&a_path, &content).unwrap();
+    fs::write(&a_path, &content).unwrap();
     content[88888] = 1;
-    file::put(&b_path, content).unwrap();
+    fs::write(&b_path, content).unwrap();
 
     let a = FileContent::from_path(a_path).unwrap();
     let b = FileContent::from_path(b_path).unwrap();
@@ -64,8 +61,8 @@ fn same_content() {
     let a_path = dir.path().join("a");
     let b_path = dir.path().join("b");
 
-    file::put_text(&a_path, "hello").unwrap();
-    file::put_text(&b_path, "hello").unwrap();
+    fs::write(&a_path, "hello").unwrap();
+    fs::write(&b_path, "hello").unwrap();
 
     let a = FileContent::from_path(&a_path).unwrap();
     let b = FileContent::from_path(&b_path).unwrap();
@@ -79,7 +76,7 @@ fn symlink() {
     let dir = TempDir::new("sametest").unwrap();
     let a_path = dir.path().join("a");
     let b_path = dir.path().join("b");
-    file::put_text(&a_path, "hello").unwrap();
+    fs::write(&a_path, "hello").unwrap();
 
     ::std::os::unix::fs::symlink(&a_path, &b_path).unwrap();
 

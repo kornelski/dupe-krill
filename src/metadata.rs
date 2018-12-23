@@ -1,7 +1,7 @@
 use std::fs;
-use std::path::Path;
 use std::io;
 use std::os::unix::fs::MetadataExt;
+use std::path::Path;
 
 #[derive(Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq, Debug, Default)]
 pub struct Metadata {

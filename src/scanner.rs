@@ -1,22 +1,22 @@
+use crate::file::{FileContent, FileSet};
+use crate::metadata::Metadata;
+use std::cell::RefCell;
+use std::cmp;
+use std::collections::btree_map::Entry as BTreeEntry;
+use std::collections::hash_map::Entry as HashEntry;
+use std::collections::BTreeMap;
+use std::collections::BinaryHeap;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::fmt::Debug;
 use std::fs;
 use std::io;
-use std::cmp;
-use file::{FileContent, FileSet};
-use std::path::{Path, PathBuf};
-use std::collections::BTreeMap;
-use std::collections::HashSet;
-use std::collections::HashMap;
-use std::collections::BinaryHeap;
-use metadata::Metadata;
-use std::rc::Rc;
-use std::cell::RefCell;
 use std::os::unix::fs::MetadataExt;
-use std::collections::hash_map::Entry as HashEntry;
-use std::collections::btree_map::Entry as BTreeEntry;
-use std::fmt::Debug;
-use std::time::{Duration,Instant};
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum RunMode {
@@ -48,8 +48,8 @@ impl Settings {
     }
 }
 
-#[derive(Debug,Default,Copy,Clone)]
-#[cfg_attr(feature = "json",derive(Serialize))]
+#[derive(Debug, Default, Copy, Clone)]
+#[cfg_attr(feature = "json", derive(serde_derive::Serialize))]
 pub struct Stats {
     pub added: usize,
     pub skipped: usize,
@@ -86,7 +86,7 @@ pub struct Scanner {
     /// which is related to its physical position on disk, which makes the scan more sequential.
     to_scan: BinaryHeap<(u64, PathBuf)>,
 
-    scan_listener: Box<ScanListener>,
+    scan_listener: Box<dyn ScanListener>,
     stats: Stats,
     exclude: HashSet<String>,
     pub settings: Settings,
@@ -120,7 +120,7 @@ impl Scanner {
 
     /// Set the scan listener. Caution: This overrides previously set listeners!
     /// Use a multiplexing listener if multiple listeners are required.
-    pub fn set_listener(&mut self, listener: Box<ScanListener>) {
+    pub fn set_listener(&mut self, listener: Box<dyn ScanListener>) {
         self.scan_listener = listener;
     }
 
@@ -291,7 +291,7 @@ impl Scanner {
         Ok(())
     }
 
-    fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut ScanListener) -> io::Result<()> {
+    fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut dyn ScanListener) -> io::Result<()> {
         if run_mode == RunMode::DryRunNoMerging {
             return Ok(());
         }

@@ -1,25 +1,20 @@
-extern crate sha1;
-
 #[cfg(feature = "json")]
-extern crate serde;
+extern crate serde_derive;
 #[cfg(feature = "json")]
 extern crate serde_json;
-#[cfg(feature = "json")]
-#[macro_use]
-extern crate serde_derive;
 
-mod scanner;
 mod file;
 mod hasher;
-mod lazyfile;
-mod metadata;
-mod ui;
 #[cfg(feature = "json")]
 mod json;
+mod lazyfile;
+mod metadata;
+mod scanner;
+mod ui;
 
-pub use scanner::Scanner;
-pub use scanner::RunMode;
-pub use file::FileContent;
-pub use ui::UI as TextUserInterface;
+pub use crate::file::FileContent;
 #[cfg(feature = "json")]
-pub use json::JsonOutput as JsonOutput;
+pub use crate::json::JsonOutput;
+pub use crate::scanner::RunMode;
+pub use crate::scanner::Scanner;
+pub use crate::ui::UI as TextUserInterface;

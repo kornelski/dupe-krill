@@ -1,9 +1,7 @@
-extern crate tempdir;
-extern crate file;
-extern crate duplicate_kriller;
-
-use duplicate_kriller::*;
+use dupe_krill;
+use dupe_krill::*;
 use std::fs;
+use tempdir;
 use tempdir::TempDir;
 
 #[test]
@@ -12,14 +10,13 @@ fn scan() {
     d.scan("tests").unwrap();
 }
 
-
 #[test]
 fn test_exclude() {
     let dir = TempDir::new("excludetest").unwrap();
     let a_path = dir.path().join("a");
     let b_path = dir.path().join("b");
-    file::put(a_path, "foo").unwrap();
-    file::put(b_path, "foo").unwrap();
+    fs::write(a_path, "foo").unwrap();
+    fs::write(b_path, "foo").unwrap();
 
     let mut d = Scanner::new();
     d.settings.ignore_small = false;
@@ -35,12 +32,11 @@ fn test_exclude() {
 
 #[test]
 fn scan_hardlink() {
-
     let dir = TempDir::new("hardlinktest2").unwrap();
     let a_path = dir.path().join("a");
     let b_path = dir.path().join("b");
 
-    file::put(&a_path, b"dupe").unwrap();
+    fs::write(&a_path, b"dupe").unwrap();
 
     fs::hard_link(&a_path, &b_path).unwrap();
 

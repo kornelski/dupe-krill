@@ -1,10 +1,11 @@
-use scanner::Stats;
-use scanner::ScanListener;
-use scanner::Scanner;
-use std::path::PathBuf;
-use std::path::Path;
-use std::time::Duration;
+use crate::scanner::ScanListener;
+use crate::scanner::Scanner;
+use crate::scanner::Stats;
+use serde_derive::*;
 use serde_json;
+use std::path::Path;
+use std::path::PathBuf;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct JsonOutput;

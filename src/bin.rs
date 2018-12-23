@@ -1,15 +1,12 @@
-extern crate getopts;
-extern crate ctrlc;
-extern crate dupe_krill;
-
+use ctrlc;
 use dupe_krill::Scanner;
-use std::env;
-use std::path::PathBuf;
-use getopts::Options;
 use dupe_krill::*;
+use getopts::Options;
+use std::env;
+use std::error::Error;
 use std::io;
 use std::io::Write;
-use std::error::Error;
+use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 

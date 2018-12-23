@@ -1,9 +1,9 @@
+use crate::lazyfile::LazyFile;
 use sha1::Sha1;
 use std::cmp::{min, Ordering};
 use std::io;
-use std::io::{Read,Seek,SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
-use lazyfile::LazyFile;
 
 /// A hashed chunk of data of arbitrary size. Files are compared a bit by bit.
 #[derive(Debug, PartialOrd, Eq, PartialEq, Ord)]
@@ -13,7 +13,7 @@ struct HashedRange {
 }
 
 impl HashedRange {
-    pub fn from_file(file: &mut LazyFile, start: u64, size: u64) -> Result<Self, io::Error> {
+    pub fn from_file(file: &mut LazyFile<'_>, start: u64, size: u64) -> Result<Self, io::Error> {
         let fd = file.fd()?;
         let mut data = vec![0; size as usize];
         fd.seek(SeekFrom::Start(start))?;
@@ -136,15 +136,15 @@ impl Hasher {
 
 #[cfg(test)]
 mod test {
-    extern crate tempdir;
-    extern crate file;
     use super::*;
+    use std::fs;
+    use tempdir;
 
     #[test]
     fn range_sha() {
         let tmp = tempdir::TempDir::new("hashtest").expect("tmp");
         let path = &tmp.path().join("a");
-        file::put_text(&path, "aaa\n").expect("write");
+        fs::write(&path, "aaa\n").expect("write");
         let mut file = LazyFile::new(&path);
         let hashed = HashedRange::from_file(&mut file, 0, 4).expect("hash");
 
