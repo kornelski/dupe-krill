@@ -51,7 +51,7 @@ impl<'h> HashIter<'h> {
             index: 0,
             start_offset: 0,
             end_offset: size,
-            next_buffer_size: 4096,
+            next_buffer_size: 2048,
             a_file: LazyFile::new(a_path),
             b_file: LazyFile::new(b_path),
         }
@@ -99,7 +99,7 @@ impl<'h> HashIter<'h> {
         // and reading files one by one without trashing.
         // Exponential increase is meant to be a compromise that allows finding
         // the difference in the first few KB, but grow quickly to read identical files faster.
-        self.next_buffer_size = min(size * 8, 128 * 1024 * 1024);
+        self.next_buffer_size = min(size * 16, 128 * 1024 * 1024);
 
         match (a_hash.ranges.get(i), b_hash.ranges.get(i)) {
             (Some(Some(a)), Some(Some(b))) => Ok(Some((a, b))),
