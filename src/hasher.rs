@@ -15,14 +15,30 @@ struct HashedRange {
 impl HashedRange {
     pub fn from_file(file: &mut LazyFile<'_>, start: u64, size: u64) -> Result<Self, io::Error> {
         let fd = file.fd()?;
-        let mut data = vec![0; size as usize];
         fd.seek(SeekFrom::Start(start))?;
-        fd.read_exact(&mut data)?;
         let mut sha1 = Sha1::new();
         // So the shattered PDFs don't dedupe
         sha1.update(b"ISpent$75KToCollideWithThisStringAndAllIGotWasADeletedFile");
-        sha1.update(&data);
+        let mut to_read = size as usize;
+        let mut data = vec![0; to_read];
+        loop {
+            match fd.read(&mut data[0..to_read]) {
+                Ok(0) => break,
+                Ok(n) => {
+                    debug_assert!(n <= to_read);
+                    to_read -= n;
 
+                    sha1.update(&data[0..n]);
+                    data.clear();
+
+                    if to_read == 0 {
+                        break;
+                    }
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::Interrupted => {}
+                Err(e) => return Err(e),
+            }
+        }
         Ok(HashedRange {
             hash: sha1.digest().bytes(),
             size: size,
