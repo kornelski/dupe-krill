@@ -26,11 +26,9 @@ impl HashedRange {
                 Ok(0) => break,
                 Ok(n) => {
                     debug_assert!(n <= to_read);
-                    to_read -= n;
-
                     sha1.update(&data[0..n]);
-                    data.clear();
 
+                    to_read -= n;
                     if to_read == 0 {
                         break;
                     }
