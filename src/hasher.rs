@@ -96,15 +96,11 @@ impl<'h> HashIter<'h> {
         };
 
         // If any of the ranges is missing, compute it
-        if a_none || b_none {
-            let a_file = &mut self.a_file;
-            let b_file = &mut self.b_file;
-            let start_offset = self.start_offset;
-            rayon::join(|| {
-                a_hash.push(HashedRange::from_file(a_file, start_offset, size));
-            }, || {
-                b_hash.push(HashedRange::from_file(b_file, start_offset, size));
-            });
+        if a_none {
+            a_hash.push(HashedRange::from_file(&mut self.a_file, self.start_offset, size));
+        }
+        if b_none {
+            b_hash.push(HashedRange::from_file(&mut self.b_file, self.start_offset, size));
         }
 
         self.index += 1;
