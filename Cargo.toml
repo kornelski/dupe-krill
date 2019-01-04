@@ -9,7 +9,7 @@ license = "MIT"
 name = "dupe-krill"
 readme = "README.md"
 repository = "https://github.com/kornelski/dupe-krill"
-version = "1.4.2"
+version = "1.4.3"
 edition = "2018"
 
 [[bin]]
