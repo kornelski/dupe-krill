@@ -42,13 +42,13 @@ pub struct FileContent {
 }
 
 impl FileContent {
-    pub fn from_path<P: Into<PathBuf>>(path: P) -> Result<Self, io::Error> {
+    pub fn from_path(path: impl Into<PathBuf>) -> Result<Self, io::Error> {
         let path = path.into();
         let m = Metadata::from_path(&path)?;
         Ok(Self::new(path, m))
     }
 
-    pub fn new<P: Into<PathBuf>>(path: P, metadata: Metadata) -> Self {
+    pub fn new(path: impl Into<PathBuf>, metadata: Metadata) -> Self {
         let path = path.into();
         FileContent {
             path: path,

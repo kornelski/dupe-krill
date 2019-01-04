@@ -58,7 +58,7 @@ pub struct Stats {
 }
 
 pub trait ScanListener: Debug {
-    fn file_scanned(&mut self, path: &PathBuf, stats: &Stats);
+    fn file_scanned(&mut self, path: &Path, stats: &Stats);
     fn scan_over(&self, scanner: &Scanner, stats: &Stats, scan_duration: Duration);
     fn hardlinked(&mut self, src: &Path, dst: &Path);
     fn duplicate_found(&mut self, src: &Path, dst: &Path);
@@ -67,7 +67,7 @@ pub trait ScanListener: Debug {
 #[derive(Debug)]
 struct SilentListener;
 impl ScanListener for SilentListener {
-    fn file_scanned(&mut self, _: &PathBuf, _: &Stats) {}
+    fn file_scanned(&mut self, _: &Path, _: &Stats) {}
 
     fn scan_over(&self, _: &Scanner, _: &Stats, _: Duration) {}
 
@@ -129,13 +129,13 @@ impl Scanner {
 
     /// Scan any file or directory for dupes.
     /// Dedupe is done within the path as well as against all previously added paths.
-    pub fn scan<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+    pub fn scan(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
         self.enqueue(path)?;
         self.flush()?;
         Ok(())
     }
 
-    pub fn enqueue<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+    pub fn enqueue(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
         let path = fs::canonicalize(path)?;
         let metadata = fs::symlink_metadata(&path)?;
         self.add(path, &metadata)?;
@@ -161,7 +161,7 @@ impl Scanner {
         Ok(())
     }
 
-    fn scan_dir(&mut self, path: &PathBuf) -> io::Result<()> {
+    fn scan_dir(&mut self, path: &Path) -> io::Result<()> {
         // Errors are ignored here, since it's super common to find permission denied and unreadable symlinks,
         // and it'd be annoying if that aborted the whole operation.
         // FIXME: store the errors somehow to report them in a controlled manner
@@ -223,12 +223,13 @@ impl Scanner {
 
     /// Creates a new fileset if it's a new file.
     /// Returns None if it's a hardlink of a file already seen.
-    fn new_fileset(&mut self, path: &PathBuf, metadata: &fs::Metadata) -> Option<RcFileSet> {
+    fn new_fileset(&mut self, path: &Path, metadata: &fs::Metadata) -> Option<RcFileSet> {
+        let path = path.to_path_buf();
         let device_inode = (metadata.dev(), metadata.ino());
 
         match self.by_inode.entry(device_inode) {
             HashEntry::Vacant(e) => {
-                let fileset = Rc::new(RefCell::new(FileSet::new(path.clone(), metadata.nlink())));
+                let fileset = Rc::new(RefCell::new(FileSet::new(path, metadata.nlink())));
                 e.insert(Rc::clone(&fileset)); // clone just bumps a refcount here
                 Some(fileset)
             },
@@ -236,7 +237,7 @@ impl Scanner {
                 // This case may require a deferred deduping later,
                 // if the new link belongs to an old fileset that has already been deduped.
                 let mut t = e.get_mut().borrow_mut();
-                t.push(path.clone());
+                t.push(path);
                 None
             },
         }

@@ -10,8 +10,8 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, io::Error> {
-        let m = fs::symlink_metadata(&path)?;
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self, io::Error> {
+        let m = fs::symlink_metadata(path)?;
         Ok(Self::new(&m))
     }
 

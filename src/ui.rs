@@ -2,7 +2,6 @@ use crate::scanner::ScanListener;
 use crate::scanner::Scanner;
 use crate::scanner::Stats;
 use std::path::Path;
-use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]
@@ -29,7 +28,7 @@ impl UI {
 }
 
 impl ScanListener for UI {
-    fn file_scanned(&mut self, path: &PathBuf, stats: &Stats) {
+    fn file_scanned(&mut self, path: &Path, stats: &Stats) {
         let elapsed = self.timing.start_time.elapsed().as_secs();
         if elapsed > self.timing.next_update {
             self.timing.next_update = elapsed+1;
@@ -103,6 +102,7 @@ fn combined_paths(base: &Path, relativize: &Path) -> String {
 
 #[test]
 fn combined_test() {
+    use std::path::PathBuf;
     let a: PathBuf = "foo/bar/baz/a.txt".into();
     let b: PathBuf = "foo/baz/quz/zzz/a.txt".into();
     let c: PathBuf = "foo/baz/quz/zzz/b.txt".into();

@@ -17,7 +17,7 @@ impl JsonOutput {
 }
 
 impl ScanListener for JsonOutput {
-    fn file_scanned(&mut self, _: &PathBuf, _: &Stats) {
+    fn file_scanned(&mut self, _: &Path, _: &Stats) {
         // output only at scan_over
     }
 
