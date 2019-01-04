@@ -25,6 +25,7 @@ panic = "abort"
 getopts = "0.2.14"
 sha1 = "0.6.0"
 ctrlc = "3.1.0"
+rayon = "1.0.3"
 
 [dependencies.serde]
 optional = true
