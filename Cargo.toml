@@ -22,25 +22,28 @@ opt-level = 3
 panic = "abort"
 
 [dependencies]
-getopts = "0.2.14"
-sha1 = "0.6.0"
-ctrlc = "3.1.0"
+getopts = "0.2.21"
+ctrlc = "3.1.4"
+blake3 = "0.2.2"
 
 [dependencies.serde]
 optional = true
-version = "1.0"
+version = "1.0.105"
 
 [dependencies.serde_derive]
 optional = true
-version = "1.0"
+version = "1.0.105"
 
 [dependencies.serde_json]
 optional = true
-version = "1.0"
+version = "1.0.48"
 
 [dev-dependencies]
-tempdir = "0.3.5"
+tempdir = "0.3.7"
 
 [features]
 default = ["json"]
 json = ["serde", "serde_derive", "serde_json"]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]

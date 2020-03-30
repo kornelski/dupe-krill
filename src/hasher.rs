@@ -1,9 +1,9 @@
 use crate::lazyfile::LazyFile;
-use sha1::Sha1;
 use std::cmp::{min, Ordering};
 use std::io;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
+use std::convert::TryInto;
 
 /// A hashed chunk of data of arbitrary size. Files are compared a bit by bit.
 #[derive(Debug, PartialOrd, Eq, PartialEq, Ord)]
@@ -16,9 +16,7 @@ impl HashedRange {
     pub fn from_file(file: &mut LazyFile<'_>, start: u64, size: u64) -> Result<Self, io::Error> {
         let fd = file.fd()?;
         fd.seek(SeekFrom::Start(start))?;
-        let mut sha1 = Sha1::new();
-        // So the shattered PDFs don't dedupe
-        sha1.update(b"ISpent$75KToCollideWithThisStringAndAllIGotWasADeletedFile");
+        let mut hasher = blake3::Hasher::new();
         let mut to_read = size as usize;
         let mut data = vec![0; to_read];
         loop {
@@ -26,7 +24,7 @@ impl HashedRange {
                 Ok(0) => break,
                 Ok(n) => {
                     debug_assert!(n <= to_read);
-                    sha1.update(&data[0..n]);
+                    hasher.update(&data[0..n]);
 
                     to_read -= n;
                     if to_read == 0 {
@@ -38,7 +36,7 @@ impl HashedRange {
             }
         }
         Ok(HashedRange {
-            hash: sha1.digest().bytes(),
+            hash: hasher.finalize().as_bytes()[0..20].try_into().unwrap(),
             size: size,
         })
     }
@@ -157,7 +155,7 @@ mod test {
     use tempdir;
 
     #[test]
-    fn range_sha() {
+    fn range_hash() {
         let tmp = tempdir::TempDir::new("hashtest").expect("tmp");
         let path = &tmp.path().join("a");
         fs::write(&path, "aaa\n").expect("write");
@@ -165,7 +163,7 @@ mod test {
         let hashed = HashedRange::from_file(&mut file, 0, 4).expect("hash");
 
         assert_eq!(4, hashed.size);
-        assert_eq!([199, 31, 32, 178, 46, 189, 89, 221, 26, 72, 162, 140, 182, 69, 43, 154, 40, 195, 32, 163], hashed.hash);
+        assert_eq!([22, 179, 164, 66, 194, 34, 185, 88, 69, 62, 115, 203, 129, 138, 81, 160, 96, 190, 209, 11], hashed.hash);
 
         let hashed = HashedRange::from_file(&mut file, 1, 2).expect("hash2");
         assert_eq!(2, hashed.size);

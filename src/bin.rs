@@ -3,7 +3,6 @@ use dupe_krill::Scanner;
 use dupe_krill::*;
 use getopts::Options;
 use std::env;
-use std::error::Error;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
@@ -15,7 +14,7 @@ enum OutputMode {
     Text,
     Json,
 }
-static CTRL_C_BREAKS: AtomicUsize = std::sync::atomic::ATOMIC_USIZE_INIT;
+static CTRL_C_BREAKS: AtomicUsize = AtomicUsize::new(0);
 
 fn main() {
     let mut opts = Options::new();
@@ -87,7 +86,7 @@ fn main() {
     match inner_main(s, matches.free) {
         Ok(()) => {},
         Err(err) => {
-            writeln!(&mut std::io::stderr(), "Error: {}; {}", err, err.description()).unwrap();
+            writeln!(&mut std::io::stderr(), "Error: {}", err).unwrap();
             std::process::exit(1);
         },
     };

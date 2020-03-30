@@ -1,8 +1,3 @@
-#[cfg(feature = "json")]
-extern crate serde_derive;
-#[cfg(feature = "json")]
-extern crate serde_json;
-
 mod file;
 mod hasher;
 #[cfg(feature = "json")]
