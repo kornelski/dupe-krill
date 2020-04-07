@@ -206,7 +206,7 @@ impl Scanner {
         }
 
         // APFS reports 4*MB* block size
-        let small_size = cmp::min(16 * 1024, metadata.blksize());
+        let small_size = cmp::min(8 * 1024, metadata.blksize());
         if metadata.size() == 0 || (self.settings.ignore_small && metadata.size() < small_size) {
             self.stats.skipped += 1;
             return Ok(());
