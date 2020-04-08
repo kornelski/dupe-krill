@@ -25,6 +25,7 @@ panic = "abort"
 getopts = "0.2.21"
 ctrlc = "3.1.4"
 blake3 = "0.2.2"
+smallvec = "1.2.0"
 
 [dependencies.serde]
 optional = true

@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use crate::lazyfile::LazyFile;
 use std::cmp::{min, Ordering};
 use std::io;
@@ -44,7 +45,7 @@ impl HashedRange {
 
 #[derive(Debug)]
 pub struct Hasher {
-    ranges: Vec<Option<HashedRange>>,
+    ranges: SmallVec<[Option<HashedRange>; 1]>,
 }
 
 /// Compares two files using hashes by hashing incrementally until the first difference is found
@@ -117,12 +118,14 @@ impl<'h> HashIter<'h> {
 }
 
 impl Hasher {
+    #[inline]
     pub fn new() -> Self {
         Hasher {
-            ranges: Vec::new(),
+            ranges: SmallVec::new(),
         }
     }
 
+    #[inline]
     fn push(&mut self, range: Result<HashedRange, io::Error>) {
         let r = match range {
             Ok(r) => Some(r),
@@ -135,6 +138,7 @@ impl Hasher {
     }
 
     /// Incremental comparison reading files lazily
+    #[inline]
     pub fn compare(&mut self, other: &mut Hasher, size: u64, self_path: &Path, other_path: &Path) -> Result<Ordering, io::Error> {
         let mut iter = HashIter::new(size, self_path, other_path);
 

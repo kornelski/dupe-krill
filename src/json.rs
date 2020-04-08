@@ -52,7 +52,7 @@ impl JsonSerializable {
             dupes: scanner
                 .dupes()
                 .into_iter()
-                .map(|sets| sets.into_iter().filter(|set| !set.paths.is_empty()).map(|set| set.paths).collect::<Vec<_>>())
+                .map(|sets| sets.into_iter().filter(|set| !set.paths.is_empty()).map(|set| set.paths.into_vec()).collect::<Vec<_>>())
                 .filter(|sets| sets.len() > 1 || sets.iter().any(|set| set.len() > 1))
                 .collect(),
             stats: *stats,
