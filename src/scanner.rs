@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use crate::file::{FileContent, FileSet};
 use crate::metadata::Metadata;
 use std::cell::RefCell;
@@ -91,7 +92,7 @@ pub struct Scanner {
 
     scan_listener: Box<dyn ScanListener>,
     stats: Stats,
-    exclude: HashSet<String>,
+    exclude: HashSet<OsString>,
     pub settings: Settings,
 
     deferred_count: usize,
@@ -118,7 +119,7 @@ impl Scanner {
     }
 
     pub fn exclude(&mut self, exclude: Vec<String>) {
-        self.exclude = exclude.into_iter().collect();
+        self.exclude = exclude.into_iter().map(From::from).collect();
     }
 
     /// Set the scan listener. Caution: This overrides previously set listeners!
@@ -172,7 +173,7 @@ impl Scanner {
 
             let path = entry.path();
             if let Some(file_name) = path.file_name() {
-                if self.exclude.contains(file_name.to_string_lossy().as_ref()) {
+                if self.exclude.contains(file_name) {
                     self.stats.skipped += 1;
                     continue;
                 }
