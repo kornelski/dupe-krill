@@ -15,7 +15,7 @@ use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
@@ -36,11 +36,11 @@ pub struct Settings {
     pub run_mode: RunMode,
 
     // If 1, go to flush. If > 1, abort immediately.
-    pub break_on: Option<&'static AtomicUsize>,
+    pub break_on: Option<&'static AtomicU32>,
 }
 
 impl Settings {
-    pub fn breaks(&self) -> usize {
+    pub fn breaks(&self) -> u32 {
         if let Some(break_on) = self.break_on {
             break_on.load(Ordering::SeqCst)
         } else {

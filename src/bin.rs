@@ -6,7 +6,7 @@ use std::env;
 use std::io;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 
 enum OutputMode {
@@ -14,7 +14,7 @@ enum OutputMode {
     Text,
     Json,
 }
-static CTRL_C_BREAKS: AtomicUsize = AtomicUsize::new(0);
+static CTRL_C_BREAKS: AtomicU32 = AtomicU32::new(0);
 
 fn main() {
     let mut opts = Options::new();
