@@ -38,6 +38,7 @@ impl ScanListener for UI {
         }
     }
 
+    #[allow(overlapping_patterns)]
     fn scan_over(&self, _: &Scanner, stats: &Stats, scan_duration: Duration) {
         let nice_duration = match scan_duration.as_secs() {
             x @ 0..=5 => format!("{:.1}s", (x * 1_000_000_000 + u64::from(scan_duration.subsec_nanos())) as f64 / 1_000_000_000f64),
