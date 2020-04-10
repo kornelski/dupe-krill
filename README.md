@@ -13,9 +13,11 @@ Replaces files that have identical content with hardlinks, so that file data of 
 
 ## Usage
 
+[Download binaries from the releases page](https://github.com/kornelski/dupe-krill/releases).
+
 Works on macOS and Linux. Windows is not supported.
 
-If you have [latest stable Rust](https://www.rust-lang.org/), build the program with either `cargo install dupe-krill` or `cargo build --release`.
+If you have the [latest stable Rust](https://www.rust-lang.org/) (1.42+), build the program with either `cargo install dupe-krill` or clone this repo and `cargo build --release`.
 
 ```sh
 dupe-krill -d <files or directories> # find dupes without doing anything
@@ -34,7 +36,13 @@ Symlinks, special device files, and 0-sized files are always skipped.
 
 Don't try to parse program's usual output. Add `--json` option if you want machine-readable output. You can also use this program as a Rust library for seamless integration.
 
-## The method
+## How does hardlinking work?
+
+Files are deduplicated by making a hardlink. They're not deleted. Instead, litreally the same file will exist in two or more directories at once. Unlike symlinks, the hardlinks behave like real files. Deleting one of hardlinks leaves other hardlinks unchanged. Editing a hardlinked file edits it in all places at once (except in some applications that delete & create a new file, instead of overwriting existing files). Hardlinking will make all duplicates of a file have the same file permissions.
+
+This program will only deduplicate files larger than a single disk block (4KB, usually), because in many filesystems hardlinking tiny files may not actually save space. You can add `-s` flag to dedupe small files, too.
+
+### Nerding out about the fast deduplication algorithm
 
 In short: it uses Rust's standard library `BTreeMap` for deduplication, but with a twist that allows it to compare files lazily, reading only as little file content as necessary.
 
