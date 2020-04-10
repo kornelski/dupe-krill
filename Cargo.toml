@@ -9,7 +9,7 @@ license = "MIT"
 name = "dupe-krill"
 readme = "README.md"
 repository = "https://github.com/kornelski/dupe-krill"
-version = "1.4.4"
+version = "1.4.5"
 edition = "2018"
 
 [[bin]]
@@ -24,20 +24,20 @@ panic = "abort"
 [dependencies]
 getopts = "0.2.21"
 ctrlc = "3.1.4"
-blake3 = "0.2.2"
-smallvec = "1.2.0"
+blake3 = "0.3.1"
+smallvec = "1.3.0"
 
 [dependencies.serde]
 optional = true
-version = "1.0.105"
+version = "1.0.106"
 
 [dependencies.serde_derive]
 optional = true
-version = "1.0.105"
+version = "1.0.106"
 
 [dependencies.serde_json]
 optional = true
-version = "1.0.48"
+version = "1.0.51"
 
 [dev-dependencies]
 tempdir = "0.3.7"
