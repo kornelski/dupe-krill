@@ -3,6 +3,7 @@ use crate::scanner::Scanner;
 use crate::scanner::Stats;
 use std::path::Path;
 use std::time::{Duration, Instant};
+use bytesize::ByteSize;
 
 #[derive(Debug)]
 struct Timing {
@@ -14,6 +15,8 @@ struct Timing {
 #[derive(Debug)]
 pub struct UI {
     timing: Timing,
+    total_reduce_size: u64
+    
 }
 
 impl UI {
@@ -23,6 +26,7 @@ impl UI {
                 next_update: 0,
                 start_time: Instant::now(),
             },
+            total_reduce_size:0
         }
     }
 }
@@ -47,6 +51,8 @@ impl ScanListener for UI {
         };
         println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}. Total scan duration: {}",
             stats.dupes, stats.hardlinks, stats.added, stats.skipped, nice_duration);
+        println!("Total reduce by {}", ByteSize(self.total_reduce_size));
+    
     }
 
     fn hardlinked(&mut self, src: &Path, dst: &Path) {
@@ -55,6 +61,10 @@ impl ScanListener for UI {
 
     fn duplicate_found(&mut self, src: &Path, dst: &Path) {
         println!("Found dupe {}", combined_paths(src, dst));
+        self.total_reduce_size += match std::fs::metadata(&src) {
+            Ok(a) => a.len(),
+            Err(_) => 0,
+        };
     }
 }
 
