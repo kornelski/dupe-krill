@@ -1,10 +1,10 @@
-use smallvec::SmallVec;
 use crate::lazyfile::LazyFile;
+use smallvec::SmallVec;
 use std::cmp::{min, Ordering};
+use std::convert::TryInto;
 use std::io;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
-use std::convert::TryInto;
 
 /// A hashed chunk of data of arbitrary size. Files are compared a bit by bit.
 #[derive(Debug, PartialOrd, Eq, PartialEq, Ord)]

@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use crate::file::{FileContent, FileSet};
 use crate::metadata::Metadata;
 use std::cell::RefCell;
@@ -9,6 +8,7 @@ use std::collections::BTreeMap;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::ffi::OsString;
 use std::fmt::Debug;
 use std::fs;
 use std::io;

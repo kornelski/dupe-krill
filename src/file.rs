@@ -1,6 +1,6 @@
-use smallvec::SmallVec;
 use crate::hasher::Hasher;
 use crate::metadata::Metadata;
+use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::cmp::max;
 use std::cmp::Ordering;
@@ -64,7 +64,8 @@ impl Eq for FileContent {}
 
 impl PartialEq for FileContent {
     fn eq(&self, other: &Self) -> bool {
-        self.partial_cmp(other).map_or(false, |o| o == Ordering::Equal)
+        self.partial_cmp(other)
+            .map_or(false, |o| o == Ordering::Equal)
     }
 }
 

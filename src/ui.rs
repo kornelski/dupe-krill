@@ -86,7 +86,10 @@ fn combined_paths(base: &Path, relativize: &Path) -> String {
     }
     out += " => ";
 
-    let rel_unique: Vec<_> = relativize[prefix_len..relativize.len() - suffix.len()].iter().map(|b| b.to_string_lossy()).collect();
+    let rel_unique: Vec<_> = relativize[prefix_len..relativize.len() - suffix.len()]
+        .iter()
+        .map(|b| b.to_string_lossy())
+        .collect();
     if rel_unique.is_empty() {
         out.push('.');
     } else {
