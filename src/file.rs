@@ -53,8 +53,8 @@ impl FileContent {
     pub fn new(path: impl Into<PathBuf>, metadata: Metadata) -> Self {
         let path = path.into();
         FileContent {
-            path: path,
-            metadata: metadata,
+            path,
+            metadata,
             hashes: RefCell::new(Hasher::new()),
         }
     }
@@ -84,7 +84,7 @@ impl PartialOrd for FileContent {
 impl FileContent {
     fn compare(&self, other: &Self) -> io::Result<Ordering> {
         // Fast pointer comparison
-        if self as *const _ == other as *const _ {
+        if std::ptr::eq(self, other) {
             return Ok(Ordering::Equal);
         }
 

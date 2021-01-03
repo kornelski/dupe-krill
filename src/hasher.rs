@@ -38,7 +38,7 @@ impl HashedRange {
         }
         Ok(HashedRange {
             hash: hasher.finalize().as_bytes()[0..20].try_into().unwrap(),
-            size: size,
+            size,
         })
     }
 }

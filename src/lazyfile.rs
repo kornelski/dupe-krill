@@ -11,10 +11,7 @@ pub struct LazyFile<'a> {
 
 impl<'a> LazyFile<'a> {
     pub fn new(path: &'a Path) -> Self {
-        LazyFile {
-            path: path,
-            file: None,
-        }
+        LazyFile { path, file: None }
     }
 
     /// Open the file (or reuse already-opened handle)

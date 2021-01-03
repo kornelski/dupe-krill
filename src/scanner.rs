@@ -156,7 +156,7 @@ impl Scanner {
                 break;
             }
         }
-        self.flush_deferred()?;
+        self.flush_deferred();
         let scan_duration = Instant::now().duration_since(start_time);
         self.scan_listener.scan_over(self, &self.stats, scan_duration);
         Ok(())
@@ -276,14 +276,14 @@ impl Scanner {
             if self.deferred_count >= self.next_deferred_count {
                 self.next_deferred_count *= 2;
                 self.deferred_count = 0;
-                self.flush_deferred()?;
+                self.flush_deferred();
             }
         }
         Ok(())
     }
 
-    fn flush_deferred(&mut self) -> io::Result<()> {
-        for (_, filesets) in &mut self.by_content {
+    fn flush_deferred(&mut self) {
+        for filesets in self.by_content.values_mut() {
             if self.settings.breaks() > 1 {
                 eprintln!("Aborting");
                 break;
@@ -292,7 +292,6 @@ impl Scanner {
                 eprintln!("{}", err);
             }
         }
-        Ok(())
     }
 
     fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut dyn ScanListener) -> io::Result<()> {

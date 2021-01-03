@@ -1,4 +1,3 @@
-use ctrlc;
 use dupe_krill::Scanner;
 use dupe_krill::*;
 use getopts::Options;
