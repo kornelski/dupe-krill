@@ -28,6 +28,8 @@ See `dupe-krill -h` for details.
 
 ### Output
 
+It prints one duplicate per line. It prints *both* paths on the same line with the difference between them highlighted as `{first => second}`. 
+
 Progress shows:
 
 > `<number unique file bodies>`+`<number of hardlinks>` dupes. `<files checked>`+`<files skipped>` files scanned.
