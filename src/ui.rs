@@ -60,7 +60,7 @@ impl ScanListener for UI {
 }
 
 fn human_size(size: usize) -> String {
-    let powers_of_two = ["", "k", "M", "G", "T", "P", "E"];
+    let powers_of_two = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei"];
     let power_threshold = 1024.;
 
     let mut current_power = 0;
