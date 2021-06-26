@@ -32,8 +32,8 @@ impl ScanListener for UI {
         let elapsed = self.timing.start_time.elapsed().as_secs();
         if elapsed > self.timing.next_update {
             self.timing.next_update = elapsed+1;
-            println!("{}+{} dupes. {}+{} files scanned. {}/…",
-                stats.dupes, stats.hardlinks, stats.added, stats.skipped,
+            println!("{}+{} dupes ({} saved). {}+{} files scanned. {}/…",
+                stats.dupes, stats.hardlinks, human_size(stats.bytes_deduplicated), stats.added, stats.skipped,
                 path.parent().unwrap_or(path).display());
         }
     }
@@ -45,8 +45,9 @@ impl ScanListener for UI {
             x @ 5..=59 => format!("{}s", x),
             x => format!("{}m{}s", x / 60, x % 60),
         };
-        println!("Dupes found: {}. Existing hardlinks: {}. Scanned: {}. Skipped {}. Total scan duration: {}",
-            stats.dupes, stats.hardlinks, stats.added, stats.skipped, nice_duration);
+        println!("Dupes found: {}, wasting {}. Existing hardlinks: {}, saving {}. Scanned: {}. Skipped {}. Total scan duration: {}",
+            stats.dupes, human_size(stats.bytes_deduplicated), stats.hardlinks, human_size(stats.bytes_saved_by_hardlinks),
+            stats.added, stats.skipped, nice_duration);
     }
 
     fn hardlinked(&mut self, src: &Path, dst: &Path) {
@@ -56,6 +57,21 @@ impl ScanListener for UI {
     fn duplicate_found(&mut self, src: &Path, dst: &Path) {
         println!("Found dupe {}", combined_paths(src, dst));
     }
+}
+
+fn human_size(size: usize) -> String {
+    let powers_of_two = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei"];
+    let power_threshold = 1024.;
+
+    let mut current_power = 0;
+    let mut current_power_size = size as f64;
+
+    while current_power_size >= power_threshold {
+        current_power_size /= (1 << 10) as f64;
+        current_power += 1;
+    }
+
+    format!("{:.2}{}B", current_power_size, powers_of_two[current_power])
 }
 
 fn combined_paths(base: &Path, relativize: &Path) -> String {
@@ -123,4 +139,12 @@ fn combined_test() {
     assert_eq!(&combined_paths(&d, &e), "{b.txt => e.txt}");
     assert_eq!(&combined_paths(&f, &g), "/foo/{bar/baz => baz/quz/zzz}/a.txt");
     assert_eq!(&combined_paths(&h, &g), "/foo/{b => baz}/quz/zzz/a.txt");
+}
+
+#[test]
+fn human_size_test() {
+    assert_eq!(human_size(15632), "15.27kB");
+    assert_eq!(human_size(1563244), "1.49MB");
+    assert_eq!(human_size(1563244174), "1.46GB");
+    assert_eq!(human_size(1563244928194), "1.42TB");
 }

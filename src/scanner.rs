@@ -55,7 +55,9 @@ pub struct Stats {
     pub added: usize,
     pub skipped: usize,
     pub dupes: usize,
+    pub bytes_deduplicated: usize,
     pub hardlinks: usize,
+    pub bytes_saved_by_hardlinks: usize,
 }
 
 pub trait ScanListener: Debug {
@@ -218,6 +220,7 @@ impl Scanner {
             self.dedupe_by_content(fileset, path, metadata)?;
         } else {
             self.stats.hardlinks += 1;
+            self.stats.bytes_saved_by_hardlinks += metadata.size() as usize;
         }
         Ok(())
     }
@@ -255,6 +258,7 @@ impl Scanner {
             BTreeEntry::Occupied(mut e) => {
                 // Found a dupe!
                 self.stats.dupes += 1;
+                self.stats.bytes_deduplicated += metadata.size() as usize;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
                 // Deduping can either be done immediately or later. Immediate is more cache-friendly and interactive,
