@@ -59,19 +59,19 @@ impl ScanListener for UI {
     }
 }
 
+const POWERS_OF_TWO: [&str; 7] = ["", "k", "M", "G", "T", "P", "E"];
 fn human_size(size: usize) -> String {
-    let powers_of_two = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei"];
     let power_threshold = 1024.;
 
     let mut current_power = 0;
     let mut current_power_size = size as f64;
 
     while current_power_size >= power_threshold {
-        current_power_size /= (1 << 10) as f64;
+        current_power_size /= 1000 as f64;
         current_power += 1;
     }
 
-    format!("{:.2}{}B", current_power_size, powers_of_two[current_power])
+    format!("{:.2}{}B", current_power_size, POWERS_OF_TWO[current_power])
 }
 
 fn combined_paths(base: &Path, relativize: &Path) -> String {
@@ -143,8 +143,8 @@ fn combined_test() {
 
 #[test]
 fn human_size_test() {
-    assert_eq!(human_size(15632), "15.27kB");
-    assert_eq!(human_size(1563244), "1.49MB");
-    assert_eq!(human_size(1563244174), "1.46GB");
-    assert_eq!(human_size(1563244928194), "1.42TB");
+    assert_eq!(human_size(15632), "15.63kB");
+    assert_eq!(human_size(1563244), "1.56MB");
+    assert_eq!(human_size(1563244174), "1.56GB");
+    assert_eq!(human_size(1563244928194), "1.56TB");
 }
