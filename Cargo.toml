@@ -3,13 +3,13 @@ authors = ["Kornel Lesiński <kornel@geekhood.net>"]
 description = "A fast file deduplicator. Replaces duplicate files with identical content with hardlinks."
 documentation = "https://github.com/kornelski/dupe-krill#readme"
 homepage = "https://github.com/kornelski/dupe-krill"
-keywords = ["dupe", "duplicate", "deduplication"]
-categories = ["command-line-utilities", "filesystem"]
+keywords = ["dupe", "deduplication", "dedupe", "disk-space"]
+categories = ["filesystem", "command-line-utilities"]
 license = "MIT"
 name = "dupe-krill"
 readme = "README.md"
 repository = "https://github.com/kornelski/dupe-krill"
-version = "1.4.5"
+version = "1.4.6"
 edition = "2018"
 
 [[bin]]
@@ -23,21 +23,21 @@ panic = "abort"
 
 [dependencies]
 getopts = "0.2.21"
-ctrlc = "3.1.4"
-blake3 = "0.3.1"
-smallvec = "1.3.0"
+ctrlc = "3.1.9"
+blake3 = "0.3.8"
+smallvec = "1.6.1"
 
 [dependencies.serde]
 optional = true
-version = "1.0.106"
+version = "1.0.126"
 
 [dependencies.serde_derive]
 optional = true
-version = "1.0.106"
+version = "1.0.126"
 
 [dependencies.serde_json]
 optional = true
-version = "1.0.51"
+version = "1.0.64"
 
 [dev-dependencies]
 tempdir = "0.3.7"
