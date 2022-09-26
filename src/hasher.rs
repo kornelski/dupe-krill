@@ -156,14 +156,14 @@ impl Hasher {
 mod test {
     use super::*;
     use std::fs;
-    use tempdir;
+    
 
     #[test]
     fn range_hash() {
         let tmp = tempdir::TempDir::new("hashtest").expect("tmp");
         let path = &tmp.path().join("a");
-        fs::write(&path, "aaa\n").expect("write");
-        let mut file = LazyFile::new(&path);
+        fs::write(path, "aaa\n").expect("write");
+        let mut file = LazyFile::new(path);
         let hashed = HashedRange::from_file(&mut file, 0, 4).expect("hash");
 
         assert_eq!(4, hashed.size);

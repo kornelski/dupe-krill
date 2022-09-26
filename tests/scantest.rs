@@ -1,7 +1,7 @@
-use dupe_krill;
+
 use dupe_krill::*;
 use std::fs;
-use tempdir;
+
 use tempdir::TempDir;
 
 #[test]

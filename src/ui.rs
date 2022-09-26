@@ -67,7 +67,7 @@ fn human_size(size: usize) -> String {
     let mut current_power_size = size as f64;
 
     while current_power_size >= power_threshold {
-        current_power_size /= 1000 as f64;
+        current_power_size /= 1000_f64;
         current_power += 1;
     }
 

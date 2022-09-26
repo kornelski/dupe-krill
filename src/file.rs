@@ -50,7 +50,6 @@ impl FileContent {
     }
 
     pub fn new(path: Box<Path>, metadata: Metadata) -> Self {
-        let path = path.into();
         FileContent {
             path,
             metadata,
@@ -99,6 +98,6 @@ impl FileContent {
         let mut hashes1 = self.hashes.borrow_mut();
         let mut hashes2 = other.hashes.borrow_mut();
 
-        hashes1.compare(&mut *hashes2, self.metadata.size, &self.path, &other.path)
+        hashes1.compare(&mut hashes2, self.metadata.size, &self.path, &other.path)
     }
 }

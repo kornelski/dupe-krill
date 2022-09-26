@@ -40,10 +40,10 @@ fn different_files_big() {
     let a_path = dir.path().join("a_big").into_boxed_path();
     let b_path = dir.path().join("b_big").into_boxed_path();
 
-    let mut content = vec![0xffu8; 1400_000];
+    let mut content = vec![0xffu8; 1_400_000];
 
     fs::write(&a_path, &content).unwrap();
-    content[1388_888] = 1;
+    content[1_388_888] = 1;
     fs::write(&b_path, content).unwrap();
 
     let a = FileContent::from_path(a_path).unwrap();

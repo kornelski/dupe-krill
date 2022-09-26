@@ -25,7 +25,8 @@ fn main() {
     opts.optflag("h", "help", "This help text");
 
     let mut args = env::args();
-    let program = args.next().unwrap_or(env!("CARGO_PKG_NAME").to_owned());
+    let program = args.next();
+    let program = program.as_deref().unwrap_or(env!("CARGO_PKG_NAME"));
 
     let matches = opts.parse(args).unwrap();
     let output_mode = if matches.opt_present("json") {
@@ -41,7 +42,7 @@ fn main() {
             "Hardlink files with duplicate content (v{}).\n{}\n\n{}",
             env!("CARGO_PKG_VERSION"),
             env!("CARGO_PKG_HOMEPAGE"),
-            opts.usage(&(opts.short_usage(&program) + " <files or directories>"))
+            opts.usage(&(opts.short_usage(program) + " <files or directories>"))
         );
         return;
     }

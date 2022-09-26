@@ -198,11 +198,8 @@ impl Scanner {
             let order_key = !(metadata.ino() >> 8);
             self.to_scan.push((order_key, path));
             return Ok(());
-        } else if ty.is_symlink() {
+        } else if ty.is_symlink() || !ty.is_file() {
             // Support for traversing symlinks would require preventing loops
-            self.stats.skipped += 1;
-            return Ok(());
-        } else if !ty.is_file() {
             // Deduping /dev/ would be funny
             self.stats.skipped += 1;
             return Ok(());
@@ -298,7 +295,7 @@ impl Scanner {
         }
     }
 
-    fn dedupe(filesets: &mut Vec<RcFileSet>, run_mode: RunMode, scan_listener: &mut dyn ScanListener) -> io::Result<()> {
+    fn dedupe(filesets: &mut [RcFileSet], run_mode: RunMode, scan_listener: &mut dyn ScanListener) -> io::Result<()> {
         if run_mode == RunMode::DryRunNoMerging {
             return Ok(());
         }
@@ -373,7 +370,7 @@ impl Scanner {
     }
 
     pub fn dupes(&self) -> Vec<Vec<FileSet>> {
-        self.by_content.iter().map(|(_,filesets)|{
+        self.by_content.values().map(|filesets| {
             filesets.iter().map(|d|{
                 let tmp = d.borrow();
                 (*tmp).clone()
