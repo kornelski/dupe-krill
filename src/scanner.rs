@@ -13,7 +13,7 @@ use std::fmt::Debug;
 use std::fs;
 use std::io;
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
@@ -90,7 +90,7 @@ pub struct Scanner {
     /// Directories left to scan. Sorted by inode number.
     /// I'm assuming scanning in this order is faster, since inode is related to file's age,
     /// which is related to its physical position on disk, which makes the scan more sequential.
-    to_scan: BinaryHeap<(u64, PathBuf)>,
+    to_scan: BinaryHeap<(u64, Box<Path>)>,
 
     scan_listener: Box<dyn ScanListener>,
     stats: Stats,
@@ -139,7 +139,7 @@ impl Scanner {
     }
 
     pub fn enqueue(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
-        let path = fs::canonicalize(path)?;
+        let path = fs::canonicalize(path)?.into_boxed_path();
         let metadata = fs::symlink_metadata(&path)?;
         self.add(path, &metadata)?;
         Ok(())
@@ -180,14 +180,14 @@ impl Scanner {
                     continue;
                 }
             }
-            if let Err(err) = self.add(path, &entry.metadata()?) {
+            if let Err(err) = self.add(path.into_boxed_path(), &entry.metadata()?) {
                 eprintln!("{}: {}", entry.path().display(), err);
             }
         }
         Ok(())
     }
 
-    fn add(&mut self, path: PathBuf, metadata: &fs::Metadata) -> io::Result<()> {
+    fn add(&mut self, path: Box<Path>, metadata: &fs::Metadata) -> io::Result<()> {
         self.scan_listener.file_scanned(&path, &self.stats);
 
         let ty = metadata.file_type();
@@ -228,7 +228,7 @@ impl Scanner {
     /// Creates a new fileset if it's a new file.
     /// Returns None if it's a hardlink of a file already seen.
     fn new_fileset(&mut self, path: &Path, metadata: &fs::Metadata) -> Option<RcFileSet> {
-        let path = path.to_path_buf();
+        let path: Box<Path> = path.into();
         let device_inode = (metadata.dev(), metadata.ino());
 
         match self.by_inode.entry(device_inode) {
@@ -248,7 +248,7 @@ impl Scanner {
     }
 
     /// Here's where all the magic happens
-    fn dedupe_by_content(&mut self, fileset: RcFileSet, path: PathBuf, metadata: &fs::Metadata) -> io::Result<()> {
+    fn dedupe_by_content(&mut self, fileset: RcFileSet, path: Box<Path>, metadata: &fs::Metadata) -> io::Result<()> {
         let mut deferred = false;
         match self.by_content.entry(FileContent::new(path, Metadata::new(metadata))) {
             BTreeEntry::Vacant(e) => {

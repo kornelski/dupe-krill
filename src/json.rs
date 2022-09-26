@@ -3,7 +3,6 @@ use crate::scanner::Scanner;
 use crate::scanner::Stats;
 use serde_derive::*;
 use std::path::Path;
-use std::path::PathBuf;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -39,7 +38,7 @@ impl ScanListener for JsonOutput {
 #[serde(rename_all = "camelCase")]
 struct JsonSerializable {
     creator: String,
-    dupes: Vec<Vec<Vec<PathBuf>>>,
+    dupes: Vec<Vec<Vec<Box<Path>>>>,
     stats: Stats,
     scan_duration: Duration,
 }

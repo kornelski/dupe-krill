@@ -5,17 +5,17 @@ use std::cell::RefCell;
 use std::cmp::max;
 use std::cmp::Ordering;
 use std::io;
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct FileSet {
     /// Tracks number of hardlinks from stat to also count unseen links outside scanned dirs
     pub max_hardlinks: u64,
-    pub paths: SmallVec<[PathBuf; 1]>,
+    pub paths: SmallVec<[Box<Path>; 1]>,
 }
 
 impl FileSet {
-    pub fn new(path: PathBuf, max_hardlinks: u64) -> Self {
+    pub fn new(path: Box<Path>, max_hardlinks: u64) -> Self {
         let mut paths = SmallVec::new();
         paths.push(path);
         FileSet {
@@ -24,7 +24,7 @@ impl FileSet {
         }
     }
 
-    pub fn push(&mut self, path: PathBuf) {
+    pub fn push(&mut self, path: Box<Path>) {
         self.paths.push(path);
     }
 
@@ -37,20 +37,19 @@ impl FileSet {
 #[derive(Debug)]
 /// File content is efficiently compared using this struct's `PartialOrd` implementation
 pub struct FileContent {
-    path: PathBuf,
+    path: Box<Path>,
     metadata: Metadata,
     /// Hashes of content, calculated incrementally
     hashes: RefCell<Hasher>,
 }
 
 impl FileContent {
-    pub fn from_path(path: impl Into<PathBuf>) -> Result<Self, io::Error> {
-        let path = path.into();
+    pub fn from_path(path: Box<Path>) -> Result<Self, io::Error> {
         let m = Metadata::from_path(&path)?;
         Ok(Self::new(path, m))
     }
 
-    pub fn new(path: impl Into<PathBuf>, metadata: Metadata) -> Self {
+    pub fn new(path: Box<Path>, metadata: Metadata) -> Self {
         let path = path.into();
         FileContent {
             path,
