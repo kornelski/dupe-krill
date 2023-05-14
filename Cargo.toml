@@ -11,6 +11,7 @@ readme = "README.md"
 repository = "https://github.com/kornelski/dupe-krill"
 version = "1.4.8"
 edition = "2021"
+rust-version = "1.64"
 
 [[bin]]
 name = "dupe-krill"
@@ -20,6 +21,7 @@ path = "src/bin.rs"
 lto = true
 opt-level = 3
 panic = "abort"
+strip = true
 
 [dependencies]
 getopts = "0.2.21"
