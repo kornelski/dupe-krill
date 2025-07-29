@@ -32,8 +32,8 @@ impl ScanListener for UI {
         let elapsed = self.timing.start_time.elapsed().as_secs();
         if elapsed > self.timing.next_update {
             self.timing.next_update = elapsed+1;
-            println!("{}+{} dupes ({} saved). {}+{} files scanned. {}/…",
-                stats.dupes, stats.hardlinks, human_size(stats.bytes_deduplicated), stats.added, stats.skipped,
+            println!("{}+{}+{} dupes ({} saved). {}+{} files scanned. {}/…",
+                stats.dupes, stats.hardlinks, stats.reflinks, human_size(stats.bytes_deduplicated), stats.added, stats.skipped,
                 path.parent().unwrap_or(path).display());
         }
     }
@@ -45,13 +45,17 @@ impl ScanListener for UI {
             x @ 5..=59 => format!("{}s", x),
             x => format!("{}m{}s", x / 60, x % 60),
         };
-        println!("Dupes found: {}, wasting {}. Existing hardlinks: {}, saving {}. Scanned: {}. Skipped {}. Total scan duration: {}",
+        println!("Dupes found: {}, wasting {}. Existing hardlinks: {}, saving {}. Reflinks created: {}, saving {}. Scanned: {}. Skipped {}. Total scan duration: {}",
             stats.dupes, human_size(stats.bytes_deduplicated), stats.hardlinks, human_size(stats.bytes_saved_by_hardlinks),
-            stats.added, stats.skipped, nice_duration);
+            stats.reflinks, human_size(stats.bytes_saved_by_reflinks), stats.added, stats.skipped, nice_duration);
     }
 
     fn hardlinked(&mut self, src: &Path, dst: &Path) {
         println!("Hardlinked {}", combined_paths(src, dst));
+    }
+
+    fn reflinked(&mut self, src: &Path, dst: &Path) {
+        println!("Reflinked {}", combined_paths(src, dst));
     }
 
     fn duplicate_found(&mut self, src: &Path, dst: &Path) {

@@ -22,6 +22,8 @@ fn main() {
     opts.optflag("q", "quiet", "Hide regular progress output");
     opts.optmulti("e", "exclude", "Don't scan directories or files with that filename (wildcards are not supported)", "<exact filename>");
     opts.optflag("", "json", "Display results as JSON");
+    opts.optflag("r", "reflink", "Strict reflinking (copy-on-write) instead of hardlinking - WILL FAIL IF unsupported");
+    opts.optflag("f", "reflink-or-hardlink", "Try reflinks first, fallback to hardlinks if reflinks are not supported");
     opts.optflag("h", "help", "This help text");
 
     let mut args = env::args();
@@ -39,7 +41,7 @@ fn main() {
 
     if matches.opt_present("h") || matches.free.is_empty() {
         println!(
-            "Hardlink files with duplicate content (v{}).\n{}\n\n{}",
+            "Hardlink or reflink files with duplicate content (v{}).\n{}\n\n{}",
             env!("CARGO_PKG_VERSION"),
             env!("CARGO_PKG_HOMEPAGE"),
             opts.usage(&(opts.short_usage(program) + " <files or directories>"))
@@ -54,7 +56,18 @@ fn main() {
 
     let mut s = Scanner::new();
     s.settings.break_on = Some(&CTRL_C_BREAKS);
-    s.settings.run_mode = if matches.opt_present("dry-run") { RunMode::DryRun } else { RunMode::Hardlink };
+    
+    // Determines run mode based on command line options
+    s.settings.run_mode = if matches.opt_present("dry-run") {
+        RunMode::DryRun
+    } else if matches.opt_present("reflink") {
+        RunMode::Reflink
+    } else if matches.opt_present("reflink-or-hardlink") {
+        RunMode::ReflinkOrHardlink
+    } else {
+        RunMode::Hardlink
+    };
+    
     s.settings.ignore_small = !matches.opt_present("small");
     match output_mode {
         OutputMode::Quiet => {
@@ -62,8 +75,11 @@ fn main() {
         },
         OutputMode::Text => {
             // TODO this print statement belongs into the TextUserInterface.
-            if s.settings.run_mode == RunMode::DryRun {
-                println!("Dry run. No files will be changed.");
+            match s.settings.run_mode {
+                RunMode::DryRun => println!("Dry run. No files will be changed."),
+                RunMode::Reflink => println!("Using reflinks (copy-on-write) for deduplication."),
+                RunMode::ReflinkOrHardlink => println!("Using reflinks when possible, falling back to hardlinks."),
+                _ => {} // Defaults to hardlink mode, no message needed
             }
             s.set_listener(Box::new(TextUserInterface::new()));
         },
