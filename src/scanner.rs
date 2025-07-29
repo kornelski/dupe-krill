@@ -1,5 +1,6 @@
 use crate::file::{FileContent, FileSet};
 use crate::metadata::Metadata;
+use crate::reflink::{LinkType, reflink, reflink_or_hardlink};
 use std::cell::RefCell;
 use std::cmp;
 use std::collections::btree_map::Entry as BTreeEntry;
@@ -12,12 +13,39 @@ use std::ffi::OsString;
 use std::fmt::Debug;
 use std::fs;
 use std::io;
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
+
+// Platform-specific metadata access functions
+#[cfg(unix)]
+fn get_inode(metadata: &fs::Metadata) -> u64 {
+    metadata.ino()
+}
+
+#[cfg(windows)]
+fn get_inode(metadata: &fs::Metadata) -> u64 {
+    // Windows doesn't have inodes, but we can use file index as a substitute
+    use std::os::windows::fs::MetadataExt;
+    metadata.file_index().unwrap_or(0)
+}
+
+#[cfg(unix)]
+fn get_device(metadata: &fs::Metadata) -> u64 {
+    metadata.dev()
+}
+
+#[cfg(windows)]
+fn get_device(metadata: &fs::Metadata) -> u64 {
+    use std::os::windows::fs::MetadataExt;
+    metadata.volume_serial_number().unwrap_or(0) as u64
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum RunMode {
@@ -26,6 +54,9 @@ pub enum RunMode {
     /// Like dry run, but completely skips deduping, with no UI for dupes.
     DryRunNoMerging,
     Hardlink,
+    Reflink,
+    /// Try reflinking first, fall back to hardlinking if reflinking fails
+    ReflinkOrHardlink,
 }
 
 #[derive(Debug)]
@@ -58,12 +89,15 @@ pub struct Stats {
     pub bytes_deduplicated: usize,
     pub hardlinks: usize,
     pub bytes_saved_by_hardlinks: usize,
+    pub reflinks: usize,
+    pub bytes_saved_by_reflinks: usize,
 }
 
 pub trait ScanListener: Debug {
     fn file_scanned(&mut self, path: &Path, stats: &Stats);
     fn scan_over(&self, scanner: &Scanner, stats: &Stats, scan_duration: Duration);
     fn hardlinked(&mut self, src: &Path, dst: &Path);
+    fn reflinked(&mut self, src: &Path, dst: &Path);
     fn duplicate_found(&mut self, src: &Path, dst: &Path);
 }
 
@@ -75,6 +109,8 @@ impl ScanListener for SilentListener {
     fn scan_over(&self, _: &Scanner, _: &Stats, _: Duration) {}
 
     fn hardlinked(&mut self, _: &Path, _: &Path) {}
+
+    fn reflinked(&mut self, _: &Path, _: &Path) {}
 
     fn duplicate_found(&mut self, _: &Path, _: &Path) {}
 }
@@ -195,7 +231,7 @@ impl Scanner {
             // Inode is truncated to group scanning of roughly close inodes together,
             // But still preserve some directory traversal order.
             // Negation to scan from the highest (assuming latest) first.
-            let order_key = !(metadata.ino() >> 8);
+            let order_key = !(get_inode(metadata) >> 8);
             self.to_scan.push((order_key, path));
             return Ok(());
         } else if ty.is_symlink() || !ty.is_file() {
@@ -226,7 +262,7 @@ impl Scanner {
     /// Returns None if it's a hardlink of a file already seen.
     fn new_fileset(&mut self, path: &Path, metadata: &fs::Metadata) -> Option<RcFileSet> {
         let path: Box<Path> = path.into();
-        let device_inode = (metadata.dev(), metadata.ino());
+        let device_inode = (get_device(metadata), get_inode(metadata));
 
         match self.by_inode.entry(device_inode) {
             HashEntry::Vacant(e) => {
@@ -262,7 +298,7 @@ impl Scanner {
                 // but for files that already have hardlinks it can cause unnecessary re-linking. So if there are
                 // hardlinks in the set, wait until the end to dedupe when all hardlinks are known.
                 if filesets.iter().all(|set| set.borrow().links() == 1) {
-                    Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener)?;
+                    Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener, &mut self.stats)?;
                 } else {
                     deferred = true;
                 }
@@ -289,13 +325,13 @@ impl Scanner {
                 eprintln!("Aborting");
                 break;
             }
-            if let Err(err) = Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener) {
+            if let Err(err) = Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener, &mut self.stats) {
                 eprintln!("{}", err);
             }
         }
     }
 
-    fn dedupe(filesets: &mut [RcFileSet], run_mode: RunMode, scan_listener: &mut dyn ScanListener) -> io::Result<()> {
+    fn dedupe(filesets: &mut [RcFileSet], run_mode: RunMode, scan_listener: &mut dyn ScanListener, stats: &mut Stats) -> io::Result<()> {
         if run_mode == RunMode::DryRunNoMerging {
             return Ok(());
         }
@@ -324,6 +360,10 @@ impl Scanner {
         // The set is still going to be in use! So everything has to be updated to make sense for the next call
         let merged_paths = &mut { filesets[largest_idx].borrow_mut() }.paths;
         let source_path = merged_paths[0].clone();
+        
+        // Get the file size for statistics tracking
+        let file_size = fs::symlink_metadata(&source_path)?.size() as usize;
+        
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself
             if i == largest_idx {
@@ -334,7 +374,7 @@ impl Scanner {
             // dest_path will be "lost" on error, but that's fine, since we don't want to dedupe it if it causes errors
             for dest_path in paths.drain(..) {
                 assert_ne!(&source_path, &dest_path);
-                debug_assert_ne!(fs::symlink_metadata(&source_path)?.ino(), fs::symlink_metadata(&dest_path)?.ino());
+                debug_assert_ne!(get_inode(&fs::symlink_metadata(&source_path)?), get_inode(&fs::symlink_metadata(&dest_path)?));
 
                 if run_mode == RunMode::DryRun {
                     scan_listener.duplicate_found(&dest_path, &source_path);
@@ -347,22 +387,66 @@ impl Scanner {
                 debug_assert!(source_path.exists());
                 debug_assert!(dest_path.exists());
 
-                // In posix link guarantees not to overwrite, and mv guarantes to move atomically
-                // so this two-step replacement is pretty robust
-                if let Err(err) = fs::hard_link(&source_path, &temp_path) {
-                    eprintln!("unable to hardlink {} {} due to {}", source_path.display(), temp_path.display(), err);
-                    let _ = fs::remove_file(temp_path);
-                    return Err(err);
+                match run_mode {
+                    RunMode::Hardlink => {
+                        // Traditional hardlink behavior
+                        if let Err(err) = fs::hard_link(&source_path, &temp_path) {
+                            eprintln!("unable to hardlink {} {} due to {}", source_path.display(), temp_path.display(), err);
+                            let _ = fs::remove_file(temp_path);
+                            return Err(err);
+                        }
+                        if let Err(err) = fs::rename(&temp_path, &dest_path) {
+                            eprintln!("unable to rename {} {} due to {}", temp_path.display(), dest_path.display(), err);
+                            let _ = fs::remove_file(temp_path);
+                            return Err(err);
+                        }
+                        scan_listener.hardlinked(&dest_path, &source_path);
+                    },
+                    RunMode::Reflink => {
+                        // Only try reflink
+                        if let Err(err) = reflink(&source_path, &temp_path) {
+                            eprintln!("unable to reflink {} {} due to {}", source_path.display(), temp_path.display(), err);
+                            let _ = fs::remove_file(temp_path);
+                            return Err(err);
+                        }
+                        if let Err(err) = fs::rename(&temp_path, &dest_path) {
+                            eprintln!("unable to rename {} {} due to {}", temp_path.display(), dest_path.display(), err);
+                            let _ = fs::remove_file(temp_path);
+                            return Err(err);
+                        }
+                        scan_listener.reflinked(&dest_path, &source_path);
+                        stats.reflinks += 1;
+                        stats.bytes_saved_by_reflinks += file_size;
+                    },
+                    RunMode::ReflinkOrHardlink => {
+                        // Try reflink first, fallback to hardlink
+                        match reflink_or_hardlink(&source_path, &temp_path)? {
+                            LinkType::Reflink => {
+                                if let Err(err) = fs::rename(&temp_path, &dest_path) {
+                                    eprintln!("unable to rename {} {} due to {}", temp_path.display(), dest_path.display(), err);
+                                    let _ = fs::remove_file(temp_path);
+                                    return Err(err);
+                                }
+                                scan_listener.reflinked(&dest_path, &source_path);
+                                stats.reflinks += 1;
+                                stats.bytes_saved_by_reflinks += file_size;
+                            },
+                            LinkType::Hardlink => {
+                                if let Err(err) = fs::rename(&temp_path, &dest_path) {
+                                    eprintln!("unable to rename {} {} due to {}", temp_path.display(), dest_path.display(), err);
+                                    let _ = fs::remove_file(temp_path);
+                                    return Err(err);
+                                }
+                                scan_listener.hardlinked(&dest_path, &source_path);
+                            }
+                        }
+                    },
+                    _ => unreachable!("Invalid run mode for linking operation"),
                 }
-                if let Err(err) = fs::rename(&temp_path, &dest_path) {
-                    eprintln!("unable to rename {} {} due to {}", temp_path.display(), dest_path.display(), err);
-                    let _ = fs::remove_file(temp_path);
-                    return Err(err);
-                }
+
                 debug_assert!(!temp_path.exists());
                 debug_assert!(source_path.exists());
                 debug_assert!(dest_path.exists());
-                scan_listener.hardlinked(&dest_path, &source_path);
                 merged_paths.push(dest_path);
             }
         }
