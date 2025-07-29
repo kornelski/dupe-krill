@@ -29,6 +29,10 @@ impl ScanListener for JsonOutput {
         // output only at scan_over
     }
 
+    fn reflinked(&mut self, _: &Path, _: &Path) {
+        // output only at scan_over
+    }
+
     fn duplicate_found(&mut self, _: &Path, _: &Path) {
         // output only at scan_over
     }

@@ -70,6 +70,7 @@ fn same_content() {
 }
 
 #[test]
+#[cfg(unix)] // Symlinks work differently on Windows
 fn symlink() {
     let dir = TempDir::new("sametest").unwrap();
     let a_path = dir.path().join("a").into_boxed_path();
