@@ -2,8 +2,6 @@ use std::fs;
 use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
-#[cfg(windows)]
-use std::os::windows::fs::MetadataExt;
 use std::path::Path;
 
 #[derive(Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq, Debug, Default)]
@@ -32,10 +30,10 @@ fn get_device_id(m: &fs::Metadata) -> u64 {
 }
 
 #[cfg(windows)]
-fn get_device_id(m: &fs::Metadata) -> u64 {
-    // On Windows, it's possible to use the volume serial number as a device identifier
-    // For now, use a constant since Windows doesn't have a direct equivalent
-    // This means hardlinking across different drives won't work, but that's expected
-    use std::os::windows::fs::MetadataExt;
-    m.volume_serial_number().unwrap_or(0) as u64
+fn get_device_id(_m: &fs::Metadata) -> u64 {
+    // On Windows, we'll use a simple constant for device identification
+    // This means hardlinking across different drives won't work properly,
+    // but that's expected behavior and matches filesystem limitations
+    // TODO: In the future, we could use Windows-specific APIs to get proper device IDs
+    0
 }
