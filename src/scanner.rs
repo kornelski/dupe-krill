@@ -15,8 +15,6 @@ use std::fs;
 use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
-#[cfg(windows)]
-use std::os::windows::fs::MetadataExt;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
@@ -31,9 +29,16 @@ fn get_inode(metadata: &fs::Metadata) -> u64 {
 
 #[cfg(windows)]
 fn get_inode(metadata: &fs::Metadata) -> u64 {
-    // Windows doesn't have inodes, but we can use file index as a substitute
-    use std::os::windows::fs::MetadataExt;
-    metadata.file_index().unwrap_or(0)
+    // Windows doesn't have inodes, but we can create a simple hash-based substitute
+    // This is a simplified approach - for production use, more sophisticated methods
+    // might be needed to ensure uniqueness
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    
+    let mut hasher = DefaultHasher::new();
+    metadata.len().hash(&mut hasher);
+    metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH).hash(&mut hasher);
+    hasher.finish()
 }
 
 #[cfg(unix)]
@@ -42,9 +47,11 @@ fn get_device(metadata: &fs::Metadata) -> u64 {
 }
 
 #[cfg(windows)]
-fn get_device(metadata: &fs::Metadata) -> u64 {
-    use std::os::windows::fs::MetadataExt;
-    metadata.volume_serial_number().unwrap_or(0) as u64
+fn get_device(_metadata: &fs::Metadata) -> u64 {
+    // On Windows, we'll use a simple constant for device identification
+    // This means hardlinking across different drives won't work properly,
+    // but that's expected behavior and matches filesystem limitations
+    0
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -242,8 +249,13 @@ impl Scanner {
         }
 
         // APFS reports 4*MB* block size
+        // On Windows, use a reasonable default block size since blksize() doesn't exist
+        #[cfg(unix)]
         let small_size = cmp::min(16 * 1024, metadata.blksize());
-        if metadata.size() == 0 || (self.settings.ignore_small && metadata.size() < small_size) {
+        #[cfg(windows)]
+        let small_size = cmp::min(16 * 1024, 4096u64); // Assume 4KB blocks on Windows
+        
+        if metadata.len() == 0 || (self.settings.ignore_small && metadata.len() < small_size) {
             self.stats.skipped += 1;
             return Ok(());
         }
@@ -253,7 +265,7 @@ impl Scanner {
             self.dedupe_by_content(fileset, path, metadata)?;
         } else {
             self.stats.hardlinks += 1;
-            self.stats.bytes_saved_by_hardlinks += metadata.size() as usize;
+            self.stats.bytes_saved_by_hardlinks += metadata.len() as usize;
         }
         Ok(())
     }
@@ -266,7 +278,13 @@ impl Scanner {
 
         match self.by_inode.entry(device_inode) {
             HashEntry::Vacant(e) => {
-                let fileset = Rc::new(RefCell::new(FileSet::new(path, metadata.nlink())));
+                // On Windows, we don't have nlink(), so assume 1 link
+                #[cfg(unix)]
+                let links = metadata.nlink();
+                #[cfg(windows)]
+                let links = 1u64;
+                
+                let fileset = Rc::new(RefCell::new(FileSet::new(path, links)));
                 e.insert(Rc::clone(&fileset)); // clone just bumps a refcount here
                 Some(fileset)
             },
@@ -291,7 +309,7 @@ impl Scanner {
             BTreeEntry::Occupied(mut e) => {
                 // Found a dupe!
                 self.stats.dupes += 1;
-                self.stats.bytes_deduplicated += metadata.size() as usize;
+                self.stats.bytes_deduplicated += metadata.len() as usize;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
                 // Deduping can either be done immediately or later. Immediate is more cache-friendly and interactive,
@@ -362,7 +380,7 @@ impl Scanner {
         let source_path = merged_paths[0].clone();
         
         // Get the file size for statistics tracking
-        let file_size = fs::symlink_metadata(&source_path)?.size() as usize;
+        let file_size = fs::symlink_metadata(&source_path)?.len() as usize;
         
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself

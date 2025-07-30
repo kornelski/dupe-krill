@@ -108,7 +108,6 @@ fn reflink_macos(src: &Path, dst: &Path) -> io::Result<()> {
 
 #[cfg(target_os = "windows")]
 fn reflink_windows(src: &Path, dst: &Path) -> io::Result<()> {
-    use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
     use std::ptr;
 
