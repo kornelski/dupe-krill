@@ -36,7 +36,7 @@ fn get_inode(metadata: &fs::Metadata) -> u64 {
     use std::hash::{Hash, Hasher};
     
     let mut hasher = DefaultHasher::new();
-    metadata.len().hash(&mut hasher);
+    metadata.size().hash(&mut hasher);
     metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH).hash(&mut hasher);
     hasher.finish()
 }
@@ -52,6 +52,20 @@ fn get_device(_metadata: &fs::Metadata) -> u64 {
     // This means hardlinking across different drives won't work properly,
     // but that's expected behavior and matches filesystem limitations
     0
+}
+
+// Helper functions to get the proper size (accounting for block overhead)
+#[cfg(unix)]
+fn get_size(metadata: &fs::Metadata) -> u64 {
+    metadata.size()
+}
+
+#[cfg(windows)]
+fn get_size(metadata: &fs::Metadata) -> u64 {
+    // Windows polyfill: round up to the next 4KB block to account for block overhead
+    let len = metadata.size();
+    const BLOCK_SIZE: u64 = 4096;
+    ((len + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -255,7 +269,7 @@ impl Scanner {
         #[cfg(windows)]
         let small_size = cmp::min(16 * 1024, 4096u64); // Assume 4KB blocks on Windows
         
-        if metadata.len() == 0 || (self.settings.ignore_small && metadata.len() < small_size) {
+        if get_size(metadata) == 0 || (self.settings.ignore_small && get_size(metadata) < small_size) {
             self.stats.skipped += 1;
             return Ok(());
         }
@@ -265,7 +279,7 @@ impl Scanner {
             self.dedupe_by_content(fileset, path, metadata)?;
         } else {
             self.stats.hardlinks += 1;
-            self.stats.bytes_saved_by_hardlinks += metadata.len() as usize;
+            self.stats.bytes_saved_by_hardlinks += get_size(metadata) as usize;
         }
         Ok(())
     }
@@ -274,27 +288,34 @@ impl Scanner {
     /// Returns None if it's a hardlink of a file already seen.
     fn new_fileset(&mut self, path: &Path, metadata: &fs::Metadata) -> Option<RcFileSet> {
         let path: Box<Path> = path.into();
-        let device_inode = (get_device(metadata), get_inode(metadata));
+        
+        // On Windows, skip the by_inode check entirely since Windows doesn't have 
+        // proper inodes and hardlink counts
+        #[cfg(windows)]
+        {
+            let fileset = Rc::new(RefCell::new(FileSet::new(path, 1u64)));
+            Some(fileset)
+        }
+        
+        #[cfg(unix)]
+        {
+            let device_inode = (get_device(metadata), get_inode(metadata));
 
-        match self.by_inode.entry(device_inode) {
-            HashEntry::Vacant(e) => {
-                // On Windows, we don't have nlink(), so assume 1 link
-                #[cfg(unix)]
-                let links = metadata.nlink();
-                #[cfg(windows)]
-                let links = 1u64;
-                
-                let fileset = Rc::new(RefCell::new(FileSet::new(path, links)));
-                e.insert(Rc::clone(&fileset)); // clone just bumps a refcount here
-                Some(fileset)
-            },
-            HashEntry::Occupied(mut e) => {
-                // This case may require a deferred deduping later,
-                // if the new link belongs to an old fileset that has already been deduped.
-                let mut t = e.get_mut().borrow_mut();
-                t.push(path);
-                None
-            },
+            match self.by_inode.entry(device_inode) {
+                HashEntry::Vacant(e) => {
+                    let links = metadata.nlink();
+                    let fileset = Rc::new(RefCell::new(FileSet::new(path, links)));
+                    e.insert(Rc::clone(&fileset)); // clone just bumps a refcount here
+                    Some(fileset)
+                },
+                HashEntry::Occupied(mut e) => {
+                    // This case may require a deferred deduping later,
+                    // if the new link belongs to an old fileset that has already been deduped.
+                    let mut t = e.get_mut().borrow_mut();
+                    t.push(path);
+                    None
+                },
+            }
         }
     }
 
@@ -309,7 +330,7 @@ impl Scanner {
             BTreeEntry::Occupied(mut e) => {
                 // Found a dupe!
                 self.stats.dupes += 1;
-                self.stats.bytes_deduplicated += metadata.len() as usize;
+                self.stats.bytes_deduplicated += get_size(metadata) as usize;
                 let filesets = e.get_mut();
                 filesets.push(fileset);
                 // Deduping can either be done immediately or later. Immediate is more cache-friendly and interactive,
@@ -380,7 +401,7 @@ impl Scanner {
         let source_path = merged_paths[0].clone();
         
         // Get the file size for statistics tracking
-        let file_size = fs::symlink_metadata(&source_path)?.len() as usize;
+        let file_size = get_size(&fs::symlink_metadata(&source_path)?) as usize;
         
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself
