@@ -22,8 +22,8 @@ fn main() {
     opts.optflag("q", "quiet", "Hide regular progress output");
     opts.optmulti("e", "exclude", "Don't scan directories or files with that filename (wildcards are not supported)", "<exact filename>");
     opts.optflag("", "json", "Display results as JSON");
-    opts.optflag("r", "reflink", "Strict reflinking (copy-on-write) instead of hardlinking - WILL FAIL IF unsupported");
-    opts.optflag("f", "reflink-or-hardlink", "Try reflinks first, fallback to hardlinks if reflinks are not supported");
+    opts.optflag("C", "reflink", "Strict reflinking (copy-on-write) instead of hardlinking - WILL FAIL IF unsupported");
+    opts.optflag("c", "reflink-or-hardlink", "Try reflinks first, fallback to hardlinks if reflinks are not supported");
     opts.optflag("h", "help", "This help text");
 
     let mut args = env::args();
