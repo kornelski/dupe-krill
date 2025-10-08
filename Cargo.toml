@@ -1,6 +1,6 @@
 [package]
 authors = ["Kornel Lesiński <kornel@geekhood.net>"]
-description = "A fast file deduplicator. Replaces duplicate files with identical content with hardlinks."
+description = "An incremental file deduplicator which minimizes amount of data read. Replaces duplicate files with identical content with hardlinks."
 documentation = "https://github.com/kornelski/dupe-krill#readme"
 homepage = "https://github.com/kornelski/dupe-krill"
 keywords = ["dupe", "deduplication", "dedupe", "disk-space"]
@@ -9,9 +9,9 @@ license = "MIT"
 name = "dupe-krill"
 readme = "README.md"
 repository = "https://github.com/kornelski/dupe-krill"
-version = "1.4.9"
-edition = "2021"
-rust-version = "1.64"
+version = "1.5.0"
+edition = "2024"
+rust-version = "1.85"
 include = ["src/*.rs", "LICENSE", "README.md", "Cargo.toml"]
 
 [[bin]]

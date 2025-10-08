@@ -83,7 +83,7 @@ impl<'h> HashIter<'h> {
 
             let failed = a.map_or(false, |a| a.is_none()) || b.map_or(false, |b| b.is_none());
             if failed {
-                return Err(io::Error::new(io::ErrorKind::Other, "cmp i/o"));
+                return Err(io::Error::other("cmp i/o"));
             }
 
             // If there is an existing hashed chunk, the chunk size used for comparison must obviously be it.
@@ -112,7 +112,7 @@ impl<'h> HashIter<'h> {
 
         match (a_hash.ranges.get(i), b_hash.ranges.get(i)) {
             (Some(Some(a)), Some(Some(b))) => Ok(Some((a, b))),
-            _ => Err(io::Error::new(io::ErrorKind::Other, "cmp i/o")),
+            _ => Err(io::Error::other("cmp i/o")),
         }
     }
 }

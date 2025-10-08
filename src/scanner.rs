@@ -371,7 +371,7 @@ impl Scanner {
         }
     }
 
-    fn dedupe(filesets: &mut [RcFileSet], run_mode: RunMode, scan_listener: &mut dyn ScanListener, stats: &mut Stats) -> io::Result<()> {
+    fn dedupe(filesets: &[RcFileSet], run_mode: RunMode, scan_listener: &mut dyn ScanListener, stats: &mut Stats) -> io::Result<()> {
         if run_mode == RunMode::DryRunNoMerging {
             return Ok(());
         }

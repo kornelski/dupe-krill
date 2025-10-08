@@ -90,12 +90,11 @@ fn reflink_macos(src: &Path, dst: &Path) -> io::Result<()> {
     let src_c = CString::new(src.as_os_str().as_bytes())?;
     let dst_c = CString::new(dst.as_os_str().as_bytes())?;
 
+    // Use clonefile() on macOS
+    unsafe extern "C" {
+        fn clonefile(src: *const libc::c_char, dst: *const libc::c_char, flags: u32) -> libc::c_int;
+    }
     unsafe {
-        // Use clonefile() on macOS
-        extern "C" {
-            fn clonefile(src: *const libc::c_char, dst: *const libc::c_char, flags: u32) -> libc::c_int;
-        }
-
         let result = clonefile(src_c.as_ptr(), dst_c.as_ptr(), 0);
         if result == 0 {
             Ok(())
