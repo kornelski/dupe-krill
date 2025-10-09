@@ -159,8 +159,9 @@ pub struct Scanner {
 }
 
 impl Scanner {
+    #[must_use] 
     pub fn new() -> Self {
-        Scanner {
+        Self {
             settings: Settings {
                 ignore_small: true,
                 run_mode: RunMode::Hardlink,
@@ -268,7 +269,7 @@ impl Scanner {
         let small_size = cmp::min(16 * 1024, metadata.blksize());
         #[cfg(windows)]
         let small_size = cmp::min(16 * 1024, 4096u64); // Assume 4KB blocks on Windows
-        
+
         if get_size(metadata) == 0 || (self.settings.ignore_small && get_size(metadata) < small_size) {
             self.stats.skipped += 1;
             return Ok(());
@@ -288,15 +289,15 @@ impl Scanner {
     /// Returns None if it's a hardlink of a file already seen.
     fn new_fileset(&mut self, path: &Path, metadata: &fs::Metadata) -> Option<RcFileSet> {
         let path: Box<Path> = path.into();
-        
-        // On Windows, skip the by_inode check entirely since Windows doesn't have 
+
+        // On Windows, skip the by_inode check entirely since Windows doesn't have
         // proper inodes and hardlink counts
         #[cfg(windows)]
         {
             let fileset = Rc::new(RefCell::new(FileSet::new(path, 1u64)));
             Some(fileset)
         }
-        
+
         #[cfg(unix)]
         {
             let device_inode = (get_device(metadata), get_inode(metadata));
@@ -365,7 +366,7 @@ impl Scanner {
                 break;
             }
             if let Err(err) = Self::dedupe(filesets, self.settings.run_mode, &mut *self.scan_listener, &mut self.stats) {
-                eprintln!("{}", err);
+                eprintln!("{err}");
             }
         }
     }
@@ -399,10 +400,10 @@ impl Scanner {
         // The set is still going to be in use! So everything has to be updated to make sense for the next call
         let merged_paths = &mut { filesets[largest_idx].borrow_mut() }.paths;
         let source_path = merged_paths[0].clone();
-        
+
         // Get the file size for statistics tracking
         let file_size = get_size(&fs::symlink_metadata(&source_path)?) as usize;
-        
+
         for (i, set) in filesets.iter().enumerate() {
             // We don't want to merge the set with itself
             if i == largest_idx {
@@ -477,7 +478,7 @@ impl Scanner {
                                     return Err(err);
                                 }
                                 scan_listener.hardlinked(&dest_path, &source_path);
-                            }
+                            },
                         }
                     },
                     _ => unreachable!("Invalid run mode for linking operation"),
@@ -492,6 +493,7 @@ impl Scanner {
         Ok(())
     }
 
+    #[must_use]
     pub fn dupes(&self) -> Vec<Vec<FileSet>> {
         self.by_content.values().map(|filesets| {
             filesets.iter().map(|d|{

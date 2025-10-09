@@ -2,8 +2,7 @@ use crate::hasher::Hasher;
 use crate::metadata::Metadata;
 use smallvec::SmallVec;
 use std::cell::RefCell;
-use std::cmp::max;
-use std::cmp::Ordering;
+use std::cmp::{max, Ordering};
 use std::io;
 use std::path::Path;
 
@@ -18,10 +17,7 @@ impl FileSet {
     pub fn new(path: Box<Path>, max_hardlinks: u64) -> Self {
         let mut paths = SmallVec::new();
         paths.push(path);
-        FileSet {
-            max_hardlinks,
-            paths,
-        }
+        Self { max_hardlinks, paths }
     }
 
     pub fn push(&mut self, path: Box<Path>) {
@@ -49,8 +45,9 @@ impl FileContent {
         Ok(Self::new(path, m))
     }
 
+    #[must_use]
     pub fn new(path: Box<Path>, metadata: Metadata) -> Self {
-        FileContent {
+        Self {
             path,
             metadata,
             hashes: RefCell::new(Hasher::new()),
@@ -62,8 +59,7 @@ impl Eq for FileContent {}
 
 impl PartialEq for FileContent {
     fn eq(&self, other: &Self) -> bool {
-        self.partial_cmp(other)
-            .map_or(false, |o| o == Ordering::Equal)
+        self.partial_cmp(other) == Some(Ordering::Equal)
     }
 }
 

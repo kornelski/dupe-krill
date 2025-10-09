@@ -1,8 +1,7 @@
-use std::fs;
-use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
+use std::{fs, io};
 
 #[derive(Copy, Clone, Hash, Ord, PartialOrd, PartialEq, Eq, Debug, Default)]
 pub struct Metadata {
@@ -17,10 +16,7 @@ impl Metadata {
     }
 
     pub fn new(m: &fs::Metadata) -> Self {
-        Metadata {
-            dev: get_device_id(m),
-            size: get_size(m),
-        }
+        Self { dev: get_device_id(m), size: get_size(m) }
     }
 }
 

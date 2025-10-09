@@ -1,7 +1,5 @@
-use crate::scanner::ScanListener;
-use crate::scanner::Scanner;
-use crate::scanner::Stats;
-use serde_derive::*;
+use crate::scanner::{ScanListener, Scanner, Stats};
+use serde_derive::Serialize;
 use std::path::Path;
 use std::time::Duration;
 
@@ -9,8 +7,9 @@ use std::time::Duration;
 pub struct JsonOutput;
 
 impl JsonOutput {
+    #[must_use]
     pub fn new() -> Self {
-        JsonOutput
+        Self
     }
 }
 
@@ -22,7 +21,7 @@ impl ScanListener for JsonOutput {
     fn scan_over(&self, scanner: &Scanner, stats: &Stats, scan_duration: Duration) {
         let data = JsonSerializable::new(scanner, stats, scan_duration);
         let json_string = serde_json::to_string_pretty(&data).unwrap();
-        println!("{}", json_string);
+        println!("{json_string}");
     }
 
     fn hardlinked(&mut self, _: &Path, _: &Path) {
@@ -49,7 +48,7 @@ struct JsonSerializable {
 
 impl JsonSerializable {
     pub fn new(scanner: &Scanner, stats: &Stats, scan_duration: Duration) -> Self {
-        JsonSerializable {
+        Self {
             creator: format!("duplicate-kriller {}", env!("CARGO_PKG_VERSION")),
             dupes: scanner
                 .dupes()

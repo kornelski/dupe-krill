@@ -1,6 +1,5 @@
-use std::fs;
-use std::io;
 use std::path::Path;
+use std::{fs, io};
 
 /// Open the file only if necessary.
 /// The file will be closed automatically when this object goes out of scope.

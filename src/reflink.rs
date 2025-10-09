@@ -1,6 +1,5 @@
-use std::fs;
-use std::io;
 use std::path::Path;
+use std::{fs, io};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum LinkType {
@@ -69,7 +68,7 @@ fn reflink_linux(src: &Path, dst: &Path) -> io::Result<()> {
         // FICLONE ioctl constant - this creates a reflink
         const FICLONE: libc::c_ulong = 0x40049409;
         let result = libc::ioctl(dst_fd, FICLONE, src_fd);
-        
+
         libc::close(src_fd);
         libc::close(dst_fd);
 
@@ -119,7 +118,7 @@ fn reflink_windows(src: &Path, dst: &Path) -> io::Result<()> {
         // Windows doesn't have a direct equivalent to FICLONE, but it's possible to
         // use the CopyFile API with COPY_FILE_COPY_SYMLINK | COPY_FILE_CLONE_FORCE.
         // This requires Windows 10 version 1903 or later with a ReFS filesystem
-        
+
         extern "system" {
             fn CopyFileExW(
                 lpExistingFileName: *const u16,
@@ -133,7 +132,7 @@ fn reflink_windows(src: &Path, dst: &Path) -> io::Result<()> {
 
         // COPY_FILE_CLONE_FORCE = 0x00800000 - Force a clone (reflink)
         const COPY_FILE_CLONE_FORCE: u32 = 0x00800000;
-        
+
         let result = CopyFileExW(
             src_wide.as_ptr(),
             dst_wide.as_ptr(),

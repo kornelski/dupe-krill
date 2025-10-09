@@ -1,6 +1,4 @@
-use crate::scanner::ScanListener;
-use crate::scanner::Scanner;
-use crate::scanner::Stats;
+use crate::scanner::{ScanListener, Scanner, Stats};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -17,8 +15,9 @@ pub struct UI {
 }
 
 impl UI {
+    #[must_use]
     pub fn new() -> Self {
-        UI {
+        Self {
             timing: Timing {
                 next_update: 0,
                 start_time: Instant::now(),
@@ -42,7 +41,7 @@ impl ScanListener for UI {
     fn scan_over(&self, _: &Scanner, stats: &Stats, scan_duration: Duration) {
         let nice_duration = match scan_duration.as_secs() {
             x @ 0..=5 => format!("{:.1}s", (x * 1_000_000_000 + u64::from(scan_duration.subsec_nanos())) as f64 / 1_000_000_000f64),
-            x @ 5..=59 => format!("{}s", x),
+            x @ 5..=59 => format!("{x}s"),
             x => format!("{}m{}s", x / 60, x % 60),
         };
         println!("Dupes found: {}, wasting {}. Existing hardlinks: {}, saving {}. Reflinks created: {}, saving {}. Scanned: {}. Skipped {}. Total scan duration: {}",

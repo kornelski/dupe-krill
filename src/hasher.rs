@@ -32,11 +32,11 @@ impl HashedRange {
                         break;
                     }
                 },
-                Err(ref e) if e.kind() == io::ErrorKind::Interrupted => {}
+                Err(ref e) if e.kind() == io::ErrorKind::Interrupted => {},
                 Err(e) => return Err(e),
             }
         }
-        Ok(HashedRange {
+        Ok(Self {
             hash: hasher.finalize().as_bytes()[0..20].try_into().unwrap(),
             size,
         })
@@ -120,9 +120,7 @@ impl<'h> HashIter<'h> {
 impl Hasher {
     #[inline]
     pub fn new() -> Self {
-        Hasher {
-            ranges: SmallVec::new(),
-        }
+        Self { ranges: SmallVec::new() }
     }
 
     #[inline]
@@ -130,7 +128,7 @@ impl Hasher {
         let r = match range {
             Ok(r) => Some(r),
             Err(err) => {
-                eprintln!("Can't compare files: {}", err);
+                eprintln!("Can't compare files: {err}");
                 None
             },
         };
@@ -139,7 +137,7 @@ impl Hasher {
 
     /// Incremental comparison reading files lazily
     #[inline]
-    pub fn compare(&mut self, other: &mut Hasher, size: u64, self_path: &Path, other_path: &Path) -> Result<Ordering, io::Error> {
+    pub fn compare(&mut self, other: &mut Self, size: u64, self_path: &Path, other_path: &Path) -> Result<Ordering, io::Error> {
         let mut iter = HashIter::new(size, self_path, other_path);
 
         while let Some((a, b)) = iter.next(self, other)? {
@@ -156,7 +154,6 @@ impl Hasher {
 mod test {
     use super::*;
     use std::fs;
-    
 
     #[test]
     fn range_hash() {

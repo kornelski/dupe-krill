@@ -1,12 +1,9 @@
-use dupe_krill::Scanner;
-use dupe_krill::*;
+use dupe_krill::{JsonOutput, RunMode, Scanner, TextUserInterface};
 use getopts::Options;
-use std::env;
-use std::io;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::{env, io};
 
 enum OutputMode {
     Quiet,
@@ -56,7 +53,7 @@ fn main() {
 
     let mut s = Scanner::new();
     s.settings.break_on = Some(&CTRL_C_BREAKS);
-    
+
     // Determines run mode based on command line options
     s.settings.run_mode = if matches.opt_present("dry-run") {
         RunMode::DryRun
@@ -67,7 +64,7 @@ fn main() {
     } else {
         RunMode::Hardlink
     };
-    
+
     s.settings.ignore_small = !matches.opt_present("small");
     match output_mode {
         OutputMode::Quiet => {
@@ -79,7 +76,7 @@ fn main() {
                 RunMode::DryRun => println!("Dry run. No files will be changed."),
                 RunMode::Reflink => println!("Using reflinks (copy-on-write) for deduplication."),
                 RunMode::ReflinkOrHardlink => println!("Using reflinks when possible, falling back to hardlinks."),
-                _ => {} // Defaults to hardlink mode, no message needed
+                _ => {}, // Defaults to hardlink mode, no message needed
             }
             s.set_listener(Box::new(TextUserInterface::new()));
         },
@@ -89,7 +86,7 @@ fn main() {
             }
             if cfg!(feature = "json") {
                 #[cfg(feature = "json")]
-                s.set_listener(Box::new(JsonOutput::new()))
+                s.set_listener(Box::new(JsonOutput::new()));
             } else {
                 writeln!(&mut std::io::stderr(), "This binary was compiled without JSON support.").unwrap();
                 std::process::exit(2)
@@ -102,10 +99,10 @@ fn main() {
     match inner_main(s, matches.free) {
         Ok(()) => {},
         Err(err) => {
-            writeln!(&mut std::io::stderr(), "Error: {}", err).unwrap();
+            writeln!(&mut std::io::stderr(), "Error: {err}").unwrap();
             std::process::exit(1);
         },
-    };
+    }
 }
 
 fn inner_main(mut s: Scanner, args: Vec<String>) -> io::Result<()> {
